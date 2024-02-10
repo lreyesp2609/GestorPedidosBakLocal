@@ -1,7 +1,30 @@
 from django.db import models
 from Producto.models import *
 from Bodega.models import *
-# Create your models here.
+from django.utils import timezone
+from Login.models import Cuenta
+
+class MovimientoInventario(models.Model):
+    id_movimientoinventario = models.AutoField(primary_key=True)
+    id_cuenta = models.ForeignKey(Cuenta, models.DO_NOTHING, db_column='id_cuenta')
+    fechahora = models.DateTimeField(default=timezone.now)
+    tipomovimiento = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida'), ('P', 'Preparacion')])
+    
+    class Meta:
+        managed = False
+        db_table = 'movimientoinventario'
+
+class DetalleMovimientoInventario(models.Model):
+    id_detallemovimiento = models.AutoField(primary_key=True)
+    id_movimientoinventario = models.ForeignKey(MovimientoInventario, models.DO_NOTHING, db_column='id_movimientoinventario')
+    id_articulo = models.ForeignKey(Componente, models.DO_NOTHING, db_column='id_articulo', blank=True, null=True)
+    id_producto = models.ForeignKey(Producto, models.DO_NOTHING, db_column='id_producto', blank=True, null=True)
+    cantidad = models.DecimalField(max_digits=9, decimal_places=2)
+    tipo = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida')])
+    
+    class Meta:
+        managed = False
+        db_table = 'detallemovimientoinventario'
 
 class Inventario(models.Model):
     id_inventario = models.AutoField(primary_key=True)

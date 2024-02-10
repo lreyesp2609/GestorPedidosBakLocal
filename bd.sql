@@ -542,3 +542,18 @@ CREATE TABLE DetalleFactura (
 	id_combo INTEGER REFERENCES Combo(id_combo),
 	id_promocion INTEGER REFERENCES Promociones(id_promocion)
 );
+CREATE TABLE MovimientoInventario (
+    id_MovimientoInventario SERIAL PRIMARY KEY,
+    id_Cuenta INTEGER REFERENCES Cuenta(id_Cuenta) NOT NULL,
+    fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    tipoMovimiento CHAR(1) CHECK (tipoMovimiento IN ('E', 'S', 'P')) NOT NULL
+);
+
+CREATE TABLE DetalleMovimientoInventario (
+    id_DetalleMovimiento SERIAL PRIMARY KEY,
+    id_MovimientoInventario INTEGER REFERENCES MovimientoInventario(id_MovimientoInventario) NOT NULL,
+    id_Articulo INTEGER REFERENCES Componente(id_Componente),
+    id_Producto INTEGER REFERENCES Producto(id_Producto),
+    cantidad NUMERIC(9,2) NOT NULL,
+    tipo CHAR(1) CHECK (tipo IN ('E', 'S')) NOT NULL
+);
