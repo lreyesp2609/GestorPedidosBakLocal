@@ -521,3 +521,24 @@ CREATE TABLE detallepedidoproveedor
     costounitario NUMERIC(9,2) NOT NULL,
     id_um INTEGER REFERENCES unidadmedida(idum) NOT NULL
 );
+
+CREATE TABLE Factura (
+    id_factura SERIAL PRIMARY KEY,
+    id_pedido INTEGER REFERENCES Pedidos(id_pedido),
+    id_cliente INTEGER REFERENCES Clientes(id_cliente),
+    id_mesero INTEGER REFERENCES Meseros(id_mesero),
+    fecha_emision TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    total NUMERIC(10, 2) NOT NULL
+);
+
+CREATE TABLE DetalleFactura (
+    id_detallefactura SERIAL PRIMARY KEY,
+    id_factura INTEGER REFERENCES Factura(id_factura),
+    cantidad NUMERIC(10, 2) NOT NULL,
+    precio_unitario NUMERIC(10, 2) NOT NULL,
+    descuento NUMERIC(10, 2) DEFAULT 0,
+    valor NUMERIC(10, 2) NOT NULL,
+	id_producto INTEGER REFERENCES Producto(id_producto),
+	id_combo INTEGER REFERENCES Combo(id_combo),
+	id_promocion INTEGER REFERENCES Promociones(id_promocion)
+);

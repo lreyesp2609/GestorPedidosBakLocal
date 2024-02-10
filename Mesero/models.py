@@ -98,6 +98,9 @@ class Factura(models.Model):
 class DetalleFactura(models.Model):
     id_detallefactura = models.AutoField(primary_key=True)
     id_factura = models.ForeignKey(Factura, on_delete=models.CASCADE, db_column='id_factura')
+    id_producto = models.ForeignKey(Producto, on_delete=models.CASCADE, db_column='id_producto', blank=True, null=True)
+    id_combo = models.ForeignKey(Combo, on_delete=models.CASCADE, db_column='id_combo', blank=True, null=True)
+    #id_promocion = models.ForeignKey(Promociones, on_delete=models.CASCADE, db_column='id_promocion', blank=True, null=True)
     cantidad = models.DecimalField(max_digits=10, decimal_places=2)
     precio_unitario = models.DecimalField(max_digits=10, decimal_places=2)
     descuento = models.DecimalField(max_digits=10, decimal_places=2, default=0)
