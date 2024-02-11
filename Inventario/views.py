@@ -13,93 +13,110 @@ from Proveedores.models import *
 from datetime import datetime
 import traceback
 import json
+from django.db import transaction
+from Inventario.models import MovimientoInventario, DetalleMovimientoInventario
+from Login.models import Cuenta
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearInventario(View):
+    @transaction.atomic
     def post(self, request, id_bodega, *args, **kwargs):
         try:
+            with transaction.atomic():
             # Obtener datos del pedido desde el request
-            id_proveedor = request.POST.get('id_proveedor')
-            fecha_pedido = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            fecha_entrega_esperada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-            observacion_pedido = request.POST.get('observacion_pedido')
-            proveedor_instance = get_object_or_404(Proveedores, id_proveedor=id_proveedor)
+                id_proveedor = request.POST.get('id_proveedor')
+                fecha_pedido = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                fecha_entrega_esperada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+                observacion_pedido = request.POST.get('observacion_pedido')
+                proveedor_instance = get_object_or_404(Proveedores, id_proveedor=id_proveedor)
 
-            bodega_instance = get_object_or_404(Bodegas, id_bodega=id_bodega)
-            idumfinal=None
-            # Crear el pedido
-            pedido = Pedidosproveedor.objects.create(
-                id_proveedor=proveedor_instance,
-                id_bodega=bodega_instance,
-                fechapedido=fecha_pedido,
-                fechaentregaesperada=fecha_entrega_esperada,
-                estado='P',
-                observacion=observacion_pedido
-            )
-            detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
-
-            detalles_pedido = json.loads(detalles_pedido_raw)
-            # Iterar sobre los detalles del pedido
-            for detalle_pedido_data in detalles_pedido['detalles_pedido']:
-                # Obtener datos del detalle del pedido desde el request
-                id_producto = detalle_pedido_data.get('id_producto')
-                id_componente = detalle_pedido_data.get('id_componente')
-                cantidad_pedido = detalle_pedido_data['cantidad_pedido']
-                print(cantidad_pedido)
-                costo_unitario = detalle_pedido_data['costo_unitario']
-                id_umid = detalle_pedido_data.get('id_um')
-                id_um= UnidadMedida.objects.get(idum=id_umid)
-                if id_producto and id_componente:
-                    return JsonResponse({'error':'Debe ingresar solo un componente o un producto.'}, status=400)
-                if id_producto:
-                    producto_instance = get_object_or_404(Producto, id_producto=id_producto)
-                    componente_instance = None
-                    idumfinal=producto_instance.id_um
-                    if(producto_instance.id_um != id_um):
-                        eum=EnsambleUnidadMedida.objects.get(idump=id_um,idumc=producto_instance.id_um)
-                        if(eum):
-                            cantidad_pedido = Decimal(cantidad_pedido) / eum.cantidadconversion
-                        else:
-                            return JsonResponse({'error':'No hay conversión para esa unidad de medida, intenta registrar en '+producto_instance.id_um.nombreum+'.'}, status=400)
-                elif id_componente:
-                    componente_instance = get_object_or_404(Componente, id_componente=id_componente)
-                    producto_instance = None
-                    idumfinal=componente_instance.id_um
-                    if(componente_instance.id_um != id_um):
-                        eum=EnsambleUnidadMedida.objects.get(idump=componente_instance.id_um,idumc=id_um)#falla
-                        if(eum):
-                            cantidad_pedido = Decimal(cantidad_pedido) / eum.cantidadconversion
-
-                        else:
-                            return JsonResponse({'No hay conversión para esa unidad de medida, intenta registrar en '+componente_instance.id_um.nombreum+'.'}, status=400)
-
-                else:
-                    raise ValueError('Debe ingresar un componente o un producto.')
-                detalle_pedido = Detallepedidoproveedor.objects.create(
-                    id_pedidoproveedor=pedido,
-                    id_producto=producto_instance,
-                    id_componente=componente_instance,
-                    cantidad=cantidad_pedido,
-                    costounitario=costo_unitario,
-                    id_um=id_um
-                )
-
-                # Actualizar el inventario
-                inventario, created = Inventario.objects.get_or_create(
+                bodega_instance = get_object_or_404(Bodegas, id_bodega=id_bodega)
+                idumfinal=None
+                # Crear el pedido
+                pedido = Pedidosproveedor.objects.create(
+                    id_proveedor=proveedor_instance,
                     id_bodega=bodega_instance,
-                    id_producto=producto_instance,
-                    id_componente=componente_instance,
-                    id_um=idumfinal,
-                    defaults={'cantidad_disponible': cantidad_pedido, 'costo_unitario': costo_unitario}
+                    fechapedido=fecha_pedido,
+                    fechaentregaesperada=fecha_entrega_esperada,
+                    estado='P',
+                    observacion=observacion_pedido
                 )
+                newmovimiento=MovimientoInventario.objects.create(
+                    id_cuenta=Cuenta.objects.get(id_cuenta=1),
+                    tipomovimiento='E'
+                )
+                
+                detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
 
-                if not created:
-                    # Si ya existe el registro en el inventario, actualiza la cantidad disponible y el costo unitario
-                    inventario.cantidad_disponible += cantidad_pedido
-                    inventario.costo_unitario = costo_unitario
-                    inventario.save()
+                detalles_pedido = json.loads(detalles_pedido_raw)
+                # Iterar sobre los detalles del pedido
+                for detalle_pedido_data in detalles_pedido['detalles_pedido']:
+                    # Obtener datos del detalle del pedido desde el request
+                    id_producto = detalle_pedido_data.get('id_producto')
+                    id_componente = detalle_pedido_data.get('id_componente')
+                    cantidad_pedido = detalle_pedido_data['cantidad_pedido']
+                    print(cantidad_pedido)
+                    costo_unitario = detalle_pedido_data['costo_unitario']
+                    id_umid = detalle_pedido_data.get('id_um')
+                    id_um= UnidadMedida.objects.get(idum=id_umid)
+                    if id_producto and id_componente:
+                        return JsonResponse({'error':'Debe ingresar solo un componente o un producto.'}, status=400)
+                    if id_producto:
+                        producto_instance = get_object_or_404(Producto, id_producto=id_producto)
+                        componente_instance = None
+                        idumfinal=producto_instance.id_um
+                        if(producto_instance.id_um != id_um):
+                            eum=EnsambleUnidadMedida.objects.get(idump=id_um,idumc=producto_instance.id_um)
+                            if(eum):
+                                cantidad_pedido = Decimal(cantidad_pedido) / eum.cantidadconversion
+                            else:
+                                return JsonResponse({'error':'No hay conversión para esa unidad de medida, intenta registrar en '+producto_instance.id_um.nombreum+'.'}, status=400)
+                    elif id_componente:
+                        componente_instance = get_object_or_404(Componente, id_componente=id_componente)
+                        producto_instance = None
+                        idumfinal=componente_instance.id_um
+                        if(componente_instance.id_um != id_um):
+                            eum=EnsambleUnidadMedida.objects.get(idump=componente_instance.id_um,idumc=id_um)#falla
+                            if(eum):
+                                cantidad_pedido = Decimal(cantidad_pedido) / eum.cantidadconversion
 
-            return JsonResponse({'mensaje': 'Pedido y inventario creados con éxito'})
+                            else:
+                                return JsonResponse({'No hay conversión para esa unidad de medida, intenta registrar en '+componente_instance.id_um.nombreum+'.'}, status=400)
+
+                    else:
+                        raise ValueError('Debe ingresar un componente o un producto.')
+                    detalle_pedido = Detallepedidoproveedor.objects.create(
+                        id_pedidoproveedor=pedido,
+                        id_producto=producto_instance,
+                        id_componente=componente_instance,
+                        cantidad=cantidad_pedido,
+                        costounitario=costo_unitario,
+                        id_um=id_um
+                    )
+                    newdetalle = DetalleMovimientoInventario.objects.create(
+                        id_movimientoinventario = newmovimiento,
+                        id_articulo = componente_instance,
+                        id_producto = producto_instance,
+                        cantidad = cantidad_pedido,
+                        tipo = 'E'
+                    )
+
+                    # Actualizar el inventario
+                    inventario, created = Inventario.objects.get_or_create(
+                        id_bodega=bodega_instance,
+                        id_producto=producto_instance,
+                        id_componente=componente_instance,
+                        id_um=idumfinal,
+                        defaults={'cantidad_disponible': cantidad_pedido, 'costo_unitario': costo_unitario}
+                    )
+
+                    if not created:
+                        # Si ya existe el registro en el inventario, actualiza la cantidad disponible y el costo unitario
+                        inventario.cantidad_disponible += cantidad_pedido
+                        inventario.costo_unitario = costo_unitario
+                        inventario.save()
+
+                return JsonResponse({'mensaje': 'Pedido y inventario creados con éxito'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)

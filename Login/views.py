@@ -113,7 +113,7 @@ class IniciarSesionView(View):
                     if cuenta:
                         token = self.generate_token(cuenta)
 
-                        return JsonResponse({'token': token, 'nombreusuario': nombre_usuario})
+                        return JsonResponse({'token': token, 'nombreusuario': nombre_usuario, 'id_cuenta': cuenta.id_cuenta})
                     else:
                         return JsonResponse({'mensaje': 'La cuenta asociada al usuario no tiene información'}, status=404)
                 else:
@@ -315,34 +315,77 @@ class DocumentExist(View):
 class ObtenerUsuariosView(View):
     def get(self, request, *args, **kwargs):
         try:
-            nombre_usuario = kwargs.get('nombre_usuario')  # Obtén el nombre de usuario de la URL
-
-            if nombre_usuario is not None:
+            id_usuario = kwargs.get('id_usuario')
+            
+            if id_usuario:
                 # Si se proporciona un nombre de usuario, intenta obtener un solo usuario
-                cuenta = get_object_or_404(Cuenta, nombreusuario=nombre_usuario)
+                cuenta = get_object_or_404(Cuenta, id_cuenta=id_usuario)
                 cliente = get_object_or_404(Clientes, id_cuenta=cuenta)
 
-                ubicacion_data = {
-                    'latitud': cliente.id_ubicacion1.latitud,
-                    'longitud': cliente.id_ubicacion1.longitud,
+                ubicacion_data1 = {
+                    'latitud': cliente.id_ubicacion1.latitud  if cliente.id_ubicacion1 else None,
+                    'longitud': cliente.id_ubicacion1.longitud if cliente.id_ubicacion1 else None,
                     # Agrega otros campos de Ubicaciones que necesites
+                }
+                
+                ubicacion_data2 = {
+                    'latitud': cliente.id_ubicacion2.latitud if cliente.id_ubicacion2 else None,
+                    'longitud': cliente.id_ubicacion2.longitud if cliente.id_ubicacion2 else None,   
+                }
+
+                ubicacion_data3 = {
+                    'latitud': cliente.id_ubicacion3.latitud if cliente.id_ubicacion3 else None,
+                    'longitud': cliente.id_ubicacion3.longitud if cliente.id_ubicacion3 else None,
                 }
 
                 usuario_data = {
                     'nombre_usuario': cuenta.nombreusuario,
+                    'idcliente':cliente.id_cliente,
                     'telefono': cliente.ctelefono,
                     'razon_social': cliente.crazon_social,
                     'tipo_cliente': cliente.tipocliente,
                     'snombre': cliente.snombre,
                     'capellido': cliente.capellido,
                     'ruc_cedula': cliente.ruc_cedula,
-                    'ubicacion1': ubicacion_data ,
+                    'ubicacion1': ubicacion_data1 ,
+                    'ubicacion2': ubicacion_data2 ,
+                    'ubicacion3': ubicacion_data3 ,
                 }
 
                 return JsonResponse({'usuario': usuario_data})
             else:
                 # Si no se proporciona un nombre de usuario, retorna un error
-                return JsonResponse({'error': 'Nombre de usuario no proporcionado'}, status=400)
+                return JsonResponse({'error': 'ID de usuario no proporcionado'}, status=400)
+
+        except Cuenta.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        except Clientes.DoesNotExist:
+            return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
 
         except Exception as e:
-            return JsonResponse({'error xd': str(e)}, status=400)
+            return JsonResponse({'error': str(e)}, status=400)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarUsuariosView(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            id_usuario = kwargs.get('id_cuenta')
+
+            cliente=Clientes.objects.get(id_cuenta=id_usuario)
+            cliente.snombre= request.POST.get('snombre')
+            cliente.capellido= request.POST.get('capellido')
+            cliente.ctelefono= request.POST.get('ctelefono')
+            cliente.ruc_cedula= request.POST.get('ruc_cedula')
+            cliente.crazon_social= request.POST.get('crazon_social')
+
+            cliente.save()
+
+
+            return JsonResponse({'mesnaje':'usuario editado con exito'})
+        except Clientes.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400) 

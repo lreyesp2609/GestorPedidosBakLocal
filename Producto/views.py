@@ -23,6 +23,9 @@ from django.db.models import Max, F
 from django.core.serializers import serialize
 from decimal import Decimal
 import traceback
+from django.db import transaction
+from Inventario.models import MovimientoInventario, DetalleMovimientoInventario
+from Login.models import Cuenta
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearTipoProducto(View):
@@ -622,83 +625,117 @@ class ComponentesDisponiblesPro(View):
             return JsonResponse({'error': str(e)}, status=500)
 @method_decorator(csrf_exempt, name='dispatch')
 class FabricarComponente(View):
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         try:
-            lista_componentes = json.loads(request.POST.get('lista_componentes'))
-            cantidad_fabricar = Decimal(request.POST.get('cantidad_fabricar'))
-            id_componente_generado = request.POST.get('id_componente_generado')
-            id_bodega = request.POST.get('id_bodega')
-            bodega= Bodegas.objects.get(id_bodega=id_bodega)
-            componente= Componente.objects.get(id_componente=id_componente_generado)
-            # Restar la cantidad de cada componente en el inventario
-            for compo in lista_componentes:
-                print('Recorrer lista?')
-                detalle_componente = compo
-                id_componente = detalle_componente.get('key')
-                componentedet=Componente.objects.get(id_componente=id_componente)
-                cantidad_restar = Decimal(detalle_componente.get('quantity'))
-
-                inventario_componente = Inventario.objects.get(id_componente=componentedet, id_bodega=bodega)
-                inventario_componente.cantidad_disponible -= cantidad_restar
-                inventario_componente.save()
-            inventario_generado = Inventario.objects.filter(id_componente=componente, id_bodega=bodega)
-            if(inventario_generado.count()>0):
-                print('Esto pasa cuando sdfas?')
-                inventario_gen = Inventario.objects.get(id_componente=componente, id_bodega=bodega)
-                inventario_gen.cantidad_disponible += cantidad_fabricar
-                inventario_gen.save()
-            else:
-                print('Esto sucede?')
-                inventariocre= Inventario.objects.create(
-                    id_bodega = bodega,
-                    id_componente =  componente,
-                    id_um = componente.id_um,
-                    stock_minimo = '1',
-                    cantidad_disponible = cantidad_fabricar
+            with transaction.atomic():
+                lista_componentes = json.loads(request.POST.get('lista_componentes'))
+                cantidad_fabricar = Decimal(request.POST.get('cantidad_fabricar'))
+                id_componente_generado = request.POST.get('id_componente_generado')
+                id_bodega = request.POST.get('id_bodega')
+                bodega= Bodegas.objects.get(id_bodega=id_bodega)
+                componente= Componente.objects.get(id_componente=id_componente_generado)
+                newmovimiento=MovimientoInventario.objects.create(
+                    id_cuenta=Cuenta.objects.get(id_cuenta=1),
+                    tipomovimiento='P'
                 )
-            print('Funciono?')
-            return JsonResponse({'mensaje': 'Operación exitosa'})
+                for compo in lista_componentes:
+                    print('Recorrer lista?')
+                    detalle_componente = compo
+                    id_componente = detalle_componente.get('key')
+                    componentedet=Componente.objects.get(id_componente=id_componente)
+                    cantidad_restar = Decimal(detalle_componente.get('quantity'))
+
+                    inventario_componente = Inventario.objects.get(id_componente=componentedet, id_bodega=bodega)
+                    inventario_componente.cantidad_disponible -= cantidad_restar
+                    inventario_componente.save()
+                    newdetalle = DetalleMovimientoInventario.objects.create(
+                        id_movimientoinventario = newmovimiento,
+                        id_articulo = componentedet,
+                        cantidad = cantidad_restar,
+                        tipo = 'S'
+                    )
+                inventario_generado = Inventario.objects.filter(id_componente=componente, id_bodega=bodega)
+                newdetalle = DetalleMovimientoInventario.objects.create(
+                    id_movimientoinventario = newmovimiento,
+                    id_articulo = componente,
+                    cantidad = cantidad_fabricar,
+                    tipo = 'E'
+                )
+                if(inventario_generado.count()>0):
+                    print('Esto pasa cuando sdfas?')
+                    inventario_gen = Inventario.objects.get(id_componente=componente, id_bodega=bodega)
+                    inventario_gen.cantidad_disponible += cantidad_fabricar
+                    inventario_gen.save()
+                else:
+                    print('Esto sucede?')
+                    inventariocre= Inventario.objects.create(
+                        id_bodega = bodega,
+                        id_componente =  componente,
+                        id_um = componente.id_um,
+                        stock_minimo = '1',
+                        cantidad_disponible = cantidad_fabricar
+                    )
+                print('Funciono?')
+                return JsonResponse({'mensaje': 'Operación exitosa'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=500)
 @method_decorator(csrf_exempt, name='dispatch')
 class FabricarProducto(View):
+    @transaction.atomic
     def post(self, request, *args, **kwargs):
         try:
-            lista_componentes = json.loads(request.POST.get('lista_componentes'))
-            cantidad_fabricar = Decimal(request.POST.get('cantidad_fabricar'))
-            id_producto_generado = request.POST.get('id_producto_generado')
-            id_bodega = request.POST.get('id_bodega')
-            bodega= Bodegas.objects.get(id_bodega=id_bodega)
-            producto= Producto.objects.get(id_producto=id_producto_generado)
-            # Restar la cantidad de cada componente en el inventario
-            for compo in lista_componentes:
-                print('Recorrer lista?')
-                detalle_componente = compo
-                id_componente = detalle_componente.get('key')
-                componentedet=Componente.objects.get(id_componente=id_componente)
-                cantidad_restar = Decimal(detalle_componente.get('quantity'))
-
-                inventario_componente = Inventario.objects.get(id_componente=componentedet, id_bodega=bodega)
-                inventario_componente.cantidad_disponible -= cantidad_restar
-                inventario_componente.save()
-            inventario_generado = Inventario.objects.filter(id_producto=producto, id_bodega=bodega)
-            if(inventario_generado.count()>0):
-                print('Esto pasa cuando sdfas?')
-                inventario_gen = Inventario.objects.get(id_producto=producto, id_bodega=bodega)
-                inventario_gen.cantidad_disponible += cantidad_fabricar
-                inventario_gen.save()
-            else:
-                print('Esto sucede?')
-                inventariocre= Inventario.objects.create(
-                    id_bodega = bodega,
-                    id_producto =  producto,
-                    id_um = producto.id_um,
-                    stock_minimo = '1',
-                    cantidad_disponible = cantidad_fabricar
+            with transaction.atomic():
+                lista_componentes = json.loads(request.POST.get('lista_componentes'))
+                cantidad_fabricar = Decimal(request.POST.get('cantidad_fabricar'))
+                id_producto_generado = request.POST.get('id_producto_generado')
+                id_bodega = request.POST.get('id_bodega')
+                bodega= Bodegas.objects.get(id_bodega=id_bodega)
+                producto= Producto.objects.get(id_producto=id_producto_generado)
+                newmovimiento=MovimientoInventario.objects.create(
+                    id_cuenta=Cuenta.objects.get(id_cuenta=1),
+                    tipomovimiento='P'
                 )
-            print('Funciono?')
-            return JsonResponse({'mensaje': 'Operación exitosa'})
+                for compo in lista_componentes:
+                    print('Recorrer lista?')
+                    detalle_componente = compo
+                    id_componente = detalle_componente.get('key')
+                    componentedet=Componente.objects.get(id_componente=id_componente)
+                    cantidad_restar = Decimal(detalle_componente.get('quantity'))
+
+                    inventario_componente = Inventario.objects.get(id_componente=componentedet, id_bodega=bodega)
+                    inventario_componente.cantidad_disponible -= cantidad_restar
+                    inventario_componente.save()
+                    newdetalle = DetalleMovimientoInventario.objects.create(
+                        id_movimientoinventario = newmovimiento,
+                        id_articulo = componentedet,
+                        cantidad = cantidad_restar,
+                        tipo = 'S'
+                    )
+                inventario_generado = Inventario.objects.filter(id_producto=producto, id_bodega=bodega)
+                newdetalle = DetalleMovimientoInventario.objects.create(
+                    id_movimientoinventario = newmovimiento,
+                    id_producto = producto,
+                    cantidad = cantidad_fabricar,
+                    tipo = 'E'
+                )
+                if(inventario_generado.count()>0):
+                    print('Esto pasa cuando sdfas?')
+                    inventario_gen = Inventario.objects.get(id_producto=producto, id_bodega=bodega)
+                    inventario_gen.cantidad_disponible += cantidad_fabricar
+                    inventario_gen.save()
+                else:
+                    print('Esto sucede?')
+                    inventariocre= Inventario.objects.create(
+                        id_bodega = bodega,
+                        id_producto =  producto,
+                        id_um = producto.id_um,
+                        stock_minimo = '1',
+                        cantidad_disponible = cantidad_fabricar
+                    )
+                print('Funciono?')
+                return JsonResponse({'mensaje': 'Operación exitosa'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=500)
