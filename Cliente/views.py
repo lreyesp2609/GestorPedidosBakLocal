@@ -1,8 +1,12 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from Ubicaciones.models import Ubicaciones
+from Mesero.models import Pedidos
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
+from datetime import datetime
+from django.db import transaction
 import json
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -115,3 +119,34 @@ class EditarCliente(View):
             return JsonResponse({'mensaje': 'Datos del cliente actualizados correctamente'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class RealizarPedidoView(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            id_usuario = kwargs.get('id_cuenta')
+
+            id_cliente=Clientes.objects.get(id_cuenta=id_usuario)
+            data = json.loads(request.body)
+
+            precio = data.get('precio', 0)
+            fecha_pedido = datetime.now()
+            tipo_de_pedido = data.get('tipo_de_pedido')
+            metodo_de_pago = data.get('metodo_de_pago')
+            puntos = data.get('puntos', 0)
+            estado_del_pedido = data.get('estado_del_pedido', 'O')
+            nuevo_pedido = Pedidos.objects.create(
+                id_cliente=id_cliente,
+                precio=precio,
+                tipo_de_pedido=tipo_de_pedido,
+                metodo_de_pago=metodo_de_pago,                
+                fecha_pedido=fecha_pedido,
+                puntos=puntos,
+                estado_del_pedido=estado_del_pedido
+            )
+            return JsonResponse({'success': True, 'message': 'Pedido realizado con éxito.'})
+        except Exception as e:
+            # Si ocurre un error, devolver un mensaje de error
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)

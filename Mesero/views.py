@@ -193,14 +193,15 @@ class TomarPedido(View):
 def ver_factura(request, id_pedido):
     print("ID de pedido recibido:", id_pedido)
     try:
-
         factura = Factura.objects.get(id_pedido_id=id_pedido)
         detalles_factura = DetalleFactura.objects.filter(id_factura_id=factura.id_factura).values()
 
         detalles_factura_list = list(detalles_factura)
+        id_cliente = factura.id_cliente_id  # Accedemos al id del cliente
 
         factura_data = {
             'id_factura': factura.id_factura,
+            'id_cliente': id_cliente,            
             'fecha_emision': factura.fecha_emision,
             'total': factura.total,
             'detalles_factura': detalles_factura_list,
