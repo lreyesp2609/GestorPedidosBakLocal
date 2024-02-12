@@ -27,4 +27,5 @@ urlpatterns = [
     path('componentenecesariop/', ComponentesDisponiblesPro.as_view(), name='ComponentesDisponiblesPro'),
     path('fabricarcomponente/', FabricarComponente.as_view(), name='FabricarComponente'),
     path('fabricarproducto/', FabricarProducto.as_view(), name='FabricarProducto'),
+    path('procesar_productos/', procesar_productos.as_view(), name='procesar_productos'),
 ]

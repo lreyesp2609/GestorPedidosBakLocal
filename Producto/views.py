@@ -26,6 +26,7 @@ import traceback
 from django.db import transaction
 from Inventario.models import MovimientoInventario, DetalleMovimientoInventario
 from Login.models import Cuenta
+from Mesero.models import Pedidos
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearTipoProducto(View):
@@ -954,6 +955,60 @@ def obtener_siguiente_codprincipal():
 
     return siguiente_codprincipal
 @method_decorator(csrf_exempt, name='dispatch')
+class procesar_productos(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                # Obtén la lista de productos y cantidades
+                productos_str = request.POST.getlist('productos[]')
+                print('La bodega es ')
+                print(request.POST.get('id_bodega'))
+                id_bodega = int(request.POST.get('id_bodega'))
+                id_ped=int(request.POST.get('id_pedido'))
+                pedido=Pedidos.objects.get(id_pedido=id_ped)
+                if productos_str:
+                    productos = [json.loads(producto) for producto in productos_str]
+                    
+                    for producto in productos:
+                        id_producto = int(producto['id_producto'])
+                        cantidad = int(producto['cantidad'])
+                        self.procesar_producto(id_producto, cantidad, id_bodega)
+                pedido.estado_del_pedido='P'
+                precio_str = pedido.precio
+                precio_str_limpio = ''.join(caracter for caracter in precio_str if caracter.isdigit() or caracter == '.')
+                precio_decimal = round(float(precio_str_limpio), 2)
+                pedido.precio=precio_decimal
+                pedido.save()
+                response_data = {'status': 'success', 'message': 'Productos procesados correctamente.'}
+
+                return JsonResponse(response_data, status=200)
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=400)
+
+    def procesar_producto( self,id_pro, cantidad,idbodega):
+        print('holi')
+        producto = Producto.objects.get(id_producto=id_pro)
+        ensamble=EnsambleProducto.objects.get(id_producto=producto)
+        detalles=DetalleEnsambleProducto.objects.filter(id_emsamblep=ensamble)
+        bodega = Bodegas.objects.get(id_bodega=idbodega)
+        newmovimiento=MovimientoInventario.objects.create(
+            id_cuenta=Cuenta.objects.get(id_cuenta=1),
+            tipomovimiento='P'
+        )
+        for detalle in detalles:
+            print('holixd')
+            print('Cantidad:')
+            print(cantidad)
+            componente= detalle.id_componentehijo
+            cantidaddet=detalle.cantidadhijo
+            inventario_componente = Inventario.objects.get(id_componente=componente, id_bodega=bodega)
+            print(inventario_componente.cantidad_disponible)
+            inventario_componente.cantidad_disponible -=cantidaddet*cantidad
+            inventario_componente.save()
+        print(f'Procesando producto con ID {producto} y cantidad {cantidad}')
+ 
 class CrearEnsambleUnidadMedida(View):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
