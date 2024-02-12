@@ -2,6 +2,8 @@ from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from Ubicaciones.models import Ubicaciones
 from Mesero.models import Pedidos
+from Mesero.models import Detallepedidos
+from Producto.models import Producto
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.views import View
@@ -128,15 +130,16 @@ class RealizarPedidoView(View):
         try:
             id_usuario = kwargs.get('id_cuenta')
 
-            id_cliente=Clientes.objects.get(id_cuenta=id_usuario)
-            data = json.loads(request.body)
+            id_cliente = Clientes.objects.get(id_cuenta=id_usuario)
 
-            precio = data.get('precio', 0)
+            # Acceder a los datos directamente desde request.POST y request.FILES
+            precio = request.POST.get('precio', 0)
             fecha_pedido = datetime.now()
-            tipo_de_pedido = data.get('tipo_de_pedido')
-            metodo_de_pago = data.get('metodo_de_pago')
-            puntos = data.get('puntos', 0)
-            estado_del_pedido = data.get('estado_del_pedido', 'O')
+            tipo_de_pedido = request.POST.get('tipo_de_pedido')
+            metodo_de_pago = request.POST.get('metodo_de_pago')
+            puntos = request.POST.get('puntos', 0)
+            estado_del_pedido = request.POST.get('estado_del_pedido', 'O')
+            
             nuevo_pedido = Pedidos.objects.create(
                 id_cliente=id_cliente,
                 precio=precio,
@@ -146,6 +149,29 @@ class RealizarPedidoView(View):
                 puntos=puntos,
                 estado_del_pedido=estado_del_pedido
             )
+            
+            nuevo_pedido.save()  # Guarda el pedido para obtener el ID asignado
+
+            detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
+            detalles_pedido = json.loads(detalles_pedido_raw)
+
+            
+            for detalle_pedido_data in detalles_pedido['detalles_pedido']:
+                id_producto = detalle_pedido_data.get('id_producto')
+                producto_asociado = Producto.objects.get(id_producto=id_producto)
+                cantidad = detalle_pedido_data.get('cantidad_pedido')
+                precio_unitario = detalle_pedido_data.get('costo_unitario')
+                impuesto = detalle_pedido_data.get('impuesto')
+
+                detalle_pedido = Detallepedidos.objects.create(
+                    id_pedido=nuevo_pedido,
+                    id_producto=producto_asociado,
+                    cantidad=cantidad,
+                    precio_unitario=precio_unitario,
+                    impuesto=impuesto
+                )
+
+
             return JsonResponse({'success': True, 'message': 'Pedido realizado con éxito.'})
         except Exception as e:
             # Si ocurre un error, devolver un mensaje de error
