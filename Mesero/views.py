@@ -138,19 +138,27 @@ def ver_factura(request, id_pedido):
         detalles_factura = DetalleFactura.objects.filter(id_factura_id=factura.id_factura).values()
 
         detalles_factura_list = list(detalles_factura)
-        id_cliente = factura.id_cliente_id  # Accedemos al id del cliente
+        id_cliente = factura.id_cliente_id
+
+        # Obtener información del pedido
+        pedido = Pedidos.objects.get(pk=id_pedido)
+        tipo_de_pedido = pedido.tipo_de_pedido
+        metodo_de_pago = pedido.metodo_de_pago
 
         factura_data = {
             'id_factura': factura.id_factura,
-            'id_cliente': id_cliente,            
+            'id_cliente': id_cliente,
             'fecha_emision': factura.fecha_emision,
             'total': factura.total,
+            'tipo_de_pedido': tipo_de_pedido,  # Agregar tipo de pedido
+            'metodo_de_pago': metodo_de_pago,  # Agregar método de pago
             'detalles_factura': detalles_factura_list,
         }
 
         return JsonResponse(factura_data)
     except Factura.DoesNotExist:
         return JsonResponse({'error': 'La factura no existe'}, status=404)
+
 
 def pedidos_del_mesero(request, id_mesa):
     try:
