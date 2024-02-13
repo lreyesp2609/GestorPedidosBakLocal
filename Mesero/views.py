@@ -209,8 +209,8 @@ def ver_factura(request, id_pedido):
             'id_cliente': id_cliente,
             'fecha_emision': factura.fecha_emision,
             'total': factura.total,
-            'tipo_de_pedido': tipo_de_pedido,  # Agregar tipo de pedido
-            'metodo_de_pago': metodo_de_pago,  # Agregar método de pago
+            'tipo_de_pedido': tipo_de_pedido,
+            'metodo_de_pago': metodo_de_pago,  
             'detalles_factura': detalles_factura_list,
         }
 
