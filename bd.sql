@@ -557,3 +557,29 @@ CREATE TABLE DetalleMovimientoInventario (
     cantidad NUMERIC(9,2) NOT NULL,
     tipo CHAR(1) CHECK (tipo IN ('E', 'S')) NOT NULL
 );
+-- Crear la tabla Tipopago
+CREATE TABLE Tipopago (
+	id_Tipopago SERIAL PRIMARY KEY,
+    IdEmpresa INTEGER REFERENCES Empresa(id_Empresa) NOT NULL,
+    Rol CHAR(1) CHECK (Rol IN ('X', 'M', 'D')) NOT NULL,
+    TipoPago CHAR(1) CHECK (TipoPago IN ('H', 'S', 'T', 'M')) NOT NULL,
+	cantidad NUMERIC(8, 2) NOT NULL
+);
+
+-- Crear la tabla Periodo
+CREATE TABLE Periodo (
+	id_Periodo SERIAL PRIMARY KEY,
+    Rol CHAR(1) CHECK (Rol IN ('X', 'M', 'D')) NOT NULL,
+    Desde TIMESTAMP NOT NULL,
+    Hasta TIMESTAMP NOT NULL
+);
+
+-- Crear la tabla Pagos
+CREATE TABLE Pagos (
+	id_Pago SERIAL PRIMARY KEY,
+    idEmpleado INTEGER REFERENCES Cuenta(id_Cuenta) NOT NULL,
+    cantidad NUMERIC(8, 2) NOT NULL,
+    TipoPago CHAR(1) CHECK (TipoPago IN ('H', 'S', 'T', 'M')) NOT NULL,
+    idPeriodo INTEGER REFERENCES Periodo(id_Periodo) NOT NULL,
+    HoraDePago TIMESTAMP NOT NULL
+);

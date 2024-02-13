@@ -48,7 +48,8 @@ INSTALLED_APPS = [
     'Recompensas',
     'corsheaders', 
     'rest_framework', 
-    'rest_framework_simplejwt.token_blacklist' 
+    'rest_framework_simplejwt.token_blacklist',
+    'pagos'
 
 ]
 
@@ -111,7 +112,7 @@ WSGI_APPLICATION = 'HamburguesaProyecto.wsgi.application'
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.postgresql',
-        'NAME': 'PedidosDB2',
+        'NAME': 'PedidosDB3',
         'USER': 'postgres',
         'PASSWORD': '12345',
         'HOST': 'localhost',
