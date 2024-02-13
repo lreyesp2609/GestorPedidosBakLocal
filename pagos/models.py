@@ -25,11 +25,11 @@ class Periodo(models.Model):
 
 class Pagos(models.Model):
     id_pago = models.AutoField(primary_key=True)
-    id_empleado = models.ForeignKey(Cuenta, on_delete=models.CASCADE, db_column='id_empleado')
+    idempleado = models.ForeignKey(Cuenta, on_delete=models.CASCADE, db_column='idempleado')
     cantidad = models.DecimalField(max_digits=8, decimal_places=2, null=False)
-    tipo_pago = models.CharField(max_length=1, choices=[('H', 'H'), ('S', 'S'), ('T', 'T'), ('M', 'M')], null=False)
-    id_periodo = models.ForeignKey(Periodo, on_delete=models.CASCADE)
-    hora_de_pago = models.DateTimeField(null=False)
+    tipopago = models.CharField(max_length=1, choices=[('H', 'H'), ('S', 'S'), ('T', 'T'), ('M', 'M')], null=False)
+    idperiodo = models.ForeignKey(Periodo, on_delete=models.CASCADE, db_column='idperiodo')
+    horadepago = models.DateTimeField(null=False)
 
     class Meta:
         managed = False

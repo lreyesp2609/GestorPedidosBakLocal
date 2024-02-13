@@ -146,7 +146,7 @@ def listar_empleados2(request, **kwargs):
             meseros = Mesero.objects.all()
         empleados = [
             {
-                'id': j.id_jefecocina,
+                'id': j.id_cuenta.id_cuenta,
                 'nombre': j.nombre,
                 'apellido': j.apellido,
                 'telefono': j.telefono,
@@ -155,7 +155,7 @@ def listar_empleados2(request, **kwargs):
             } for j in jefes_cocina
         ] + [
             {
-                'id': mo.id_motorizado,
+                'id': mo.id_cuenta.id_cuenta,
                 'nombre': mo.nombre,
                 'apellido': mo.apellido,
                 'telefono': mo.telefono,
@@ -164,7 +164,7 @@ def listar_empleados2(request, **kwargs):
             } for mo in motorizados
         ] + [
             {
-                'id': a.id_administrador,
+                'id': a.id_cuenta.id_cuenta,
                 'nombre': a.nombre,
                 'apellido': a.apellido,
                 'telefono': a.telefono,
@@ -173,7 +173,7 @@ def listar_empleados2(request, **kwargs):
             } for a in administradores
         ] + [
             {
-                'id': m.id_mesero,
+                'id': m.id_cuenta.id_cuenta,
                 'nombre': m.nombre,
                 'apellido': m.apellido,
                 'telefono': m.telefono,

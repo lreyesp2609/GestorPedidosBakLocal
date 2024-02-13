@@ -2,11 +2,14 @@ from django.shortcuts import render, get_object_or_404
 from django.views import View
 from django.http import JsonResponse
 from django.db import transaction
-from .models import Tipopago, Empresa
+from .models import Tipopago, Empresa,Periodo,Pagos
+from Login.models import Cuenta
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 import json
+from datetime import datetime
 import traceback
+from django.utils import timezone
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearEditarTipopago(View):
@@ -48,7 +51,7 @@ class ConsultarTipopago(View):
             # Consultar todos los Tipopago
             tipopagos = Tipopago.objects.all()
 
-            # Crear una lista con los datos de cada Tipopago
+            # Crear una lista con lojjjjjjjjjjjjjms datos de cada Tipopago
             tipopagos_data = [
                 {
                     'id_tipopago': tipopago.id_tipopago,
@@ -69,37 +72,67 @@ class CrearPago(View):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         try:
-            # Obtener los datos de la solicitud
-            id_empleado = request.POST.get('id_empleado')
-            fecha_inicio_str = request.POST.get('fecha_inicio')
-            fecha_fin_str = request.POST.get('fecha_fin')
-            cantidad_pago = request.POST.get('cantidad_pago')
+            with transaction.atomic():
+                id_empleado = request.POST.get('id_empleado')
+                fecha_inicio_str = request.POST.get('fecha_inicio')
+                fecha_fin_str = request.POST.get('fecha_fin')
+                rol = request.POST.get('rol')
+                fecha_inicio = datetime.strptime(fecha_inicio_str, "%m/%d/%Y")
+                fecha_fin = datetime.strptime(fecha_fin_str, "%m/%d/%Y")
+                periodoselec = Periodo.objects.filter(desde=fecha_inicio,hasta=fecha_fin)
+                tpago=Tipopago.objects.get(rol=rol)
+                empleado=Cuenta.objects.get(id_cuenta=id_empleado)
+                if periodoselec.exists():
+                    pago=Pagos.objects.filter(idempleado=empleado,idperiodo=periodoselec.first())
+                    if pago.exists():
+                        return JsonResponse({'error': 'El empleado ya tenía un pago de esa fecha'}, status=400)
+                    pago=Pagos.objects.create(
+                        idempleado=empleado,
+                        cantidad=tpago.cantidad,
+                        tipopago=tpago.tipo_pago,
+                        idperiodo=periodoselec.first(),
+                        horadepago=timezone.now()
+                    )
+                    return JsonResponse({'mensaje': 'Pago creado con éxito'})
+                periodoac=Periodo.objects.create(
+                    rol = rol,
+                    desde = fecha_inicio,
+                    hasta = fecha_fin
+                )
+                pago=Pagos.objects.create(
+                    idempleado=empleado,
+                    cantidad=tpago.cantidad,
+                    tipopago=tpago.tipo_pago,
+                    idperiodo=periodoac,
+                    horadepago=timezone.now()
+                )
 
-            # Convertir las fechas a objetos datetime
-            fecha_inicio = datetime.strptime(fecha_inicio_str, "%Y-%m-%d %H:%M:%S")
-            fecha_fin = datetime.strptime(fecha_fin_str, "%Y-%m-%d %H:%M:%S")
-
-            # Consultar el Tipopago correspondiente al rol del empleado
-            empleado_tipopago = Tipopago.objects.get(rol='X')  # Modifica esto según la lógica de tu aplicación
-
-            # Crear un nuevo periodo
-            periodo = Periodo.objects.create(rol='X', desde=fecha_inicio, hasta=fecha_fin)
-
-            # Crear un nuevo pago
-            pago = Pagos.objects.create(
-                id_empleado=id_empleado,
-                cantidad=cantidad_pago,
-                tipo_pago=empleado_tipopago.tipo_pago,
-                id_periodo=periodo,
-                hora_de_pago=datetime.now(),
-            )
-
-            return JsonResponse({'mensaje': 'Pago creado con éxito'})
-
-        except Empresa.DoesNotExist:
-            return JsonResponse({'error': 'Empresa no encontrada'}, status=404)
-        except Tipopago.DoesNotExist:
-            return JsonResponse({'error': 'Tipopago no encontrado para el rol del empleado'}, status=404)
+                return JsonResponse({'mensaje': 'Pago creado con éxito'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
+@method_decorator(csrf_exempt, name='dispatch')
+class ConsultarPagos(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Consultar todos los Pagos
+            pagos = Pagos.objects.all()
+            
+            # Crear una lista con los datos de cada Pago
+            pagos_data = [
+                {
+                    'id_pago': pago.id_pago,
+                    'idempleado': pago.idempleado.id_cuenta,
+                    'cantidad': str(pago.cantidad),  # Convertir el Decimal a cadena para evitar errores de serialización JSON
+                    'tipopago': pago.tipopago,
+                    'idperiodo': pago.idperiodo.id_periodo,
+                    'horadepago': pago.horadepago.strftime('%Y-%m-%d %H:%M:%S'),  # Formato ISO 8601 para la fecha
+                }
+                for pago in pagos
+            ]
+
+            return JsonResponse({'pagos': pagos_data})
+
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
