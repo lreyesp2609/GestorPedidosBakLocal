@@ -131,3 +131,57 @@ class EditarEmpleadoView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+def listar_empleados2(request, **kwargs):
+    try:
+        idsucursal = kwargs.get('idsucursal') 
+        if idsucursal:
+            jefes_cocina = JefeCocina.objects.filter(id_sucursal=idsucursal) if idsucursal else JefeCocina.objects.all()
+            motorizados = Motorizado.objects.filter(id_sucursal=idsucursal) if idsucursal else Motorizado.objects.all()
+            administradores = Administrador.objects.filter(id_sucursal=idsucursal) if idsucursal else Administrador.objects.all()
+            meseros = Mesero.objects.filter(id_sucursal=idsucursal) if idsucursal else Mesero.objects.all()
+        else:
+            jefes_cocina = JefeCocina.objects.all()
+            motorizados = Motorizado.objects.all()
+            administradores = Administrador.objects.all()
+            meseros = Mesero.objects.all()
+        empleados = [
+            {
+                'id': j.id_jefecocina,
+                'nombre': j.nombre,
+                'apellido': j.apellido,
+                'telefono': j.telefono,
+                'tipo': 'X',
+                'sucursal': j.id_sucursal.id_sucursal if j.id_sucursal else None
+            } for j in jefes_cocina
+        ] + [
+            {
+                'id': mo.id_motorizado,
+                'nombre': mo.nombre,
+                'apellido': mo.apellido,
+                'telefono': mo.telefono,
+                'tipo': 'D',
+                'sucursal': mo.id_sucursal.id_sucursal if mo.id_sucursal else None
+            } for mo in motorizados
+        ] + [
+            {
+                'id': a.id_administrador,
+                'nombre': a.nombre,
+                'apellido': a.apellido,
+                'telefono': a.telefono,
+                'tipo': 'A',
+                'sucursal': a.id_sucursal.id_sucursal if a.id_sucursal else None
+            } for a in administradores
+        ] + [
+            {
+                'id': m.id_mesero,
+                'nombre': m.nombre,
+                'apellido': m.apellido,
+                'telefono': m.telefono,
+                'tipo': 'M',
+                'sucursal': m.id_sucursal.id_sucursal if m.id_sucursal else None
+            } for m in meseros
+        ]
+
+        return JsonResponse({'empleados': empleados})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
