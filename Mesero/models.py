@@ -89,6 +89,10 @@ class Factura(models.Model):
     id_mesero = models.ForeignKey(Meseros, on_delete=models.CASCADE, db_column='id_mesero')
     fecha_emision = models.DateTimeField(auto_now_add=True)
     total = models.DecimalField(max_digits=10, decimal_places=2)
+    iva = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    descuento = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    a_pagar = models.DecimalField(max_digits=10, decimal_places=2, default=0)
 
     class Meta:
         managed = False

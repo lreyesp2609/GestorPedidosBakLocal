@@ -528,7 +528,11 @@ CREATE TABLE Factura (
     id_cliente INTEGER REFERENCES Clientes(id_cliente),
     id_mesero INTEGER REFERENCES Meseros(id_mesero),
     fecha_emision TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    total NUMERIC(10, 2) NOT NULL
+    total NUMERIC(10, 2) NOT NULL,
+    iva NUMERIC(10, 2) DEFAULT 0,
+    descuento NUMERIC(10, 2) DEFAULT 0,
+    subtotal NUMERIC(10, 2) DEFAULT 0,
+    a_pagar NUMERIC(10, 2) DEFAULT 0
 );
 
 CREATE TABLE DetalleFactura (
