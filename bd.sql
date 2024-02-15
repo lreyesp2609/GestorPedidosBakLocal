@@ -285,7 +285,7 @@ CREATE TABLE Pedidos (
 	Puntos NUMERIC(3) NOT NULL,
 	Fecha_pedido TIMESTAMP NOT NULL,
 	Fecha_entrega TIMESTAMP,
-	Estado_del_pedido CHAR NOT NULL CHECK (Estado_del_pedido IN ('O', 'P', 'C', 'E')) NOT NULL,
+	Estado_del_pedido CHAR NOT NULL CHECK (Estado_del_pedido IN ('O', 'P', 'C', 'E','R')) NOT NULL,
 	Observacion_del_cliente VARCHAR(500)
 );
 
@@ -300,6 +300,13 @@ CREATE TABLE DetallePedidos (
 	Impuesto NUMERIC(9,2),
 	Descuento NUMERIC(9,2)
 );
+
+CREATE TABLE ReversionPedidos (
+    id_Reversion SERIAL PRIMARY KEY,
+    id_Pedido INTEGER REFERENCES Pedidos(id_Pedido) NOT NULL,
+    id_Cuenta INTEGER REFERENCES Cuenta(id_Cuenta) NOT NULL,
+    FechaCancelacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+); 
 
 CREATE TABLE Bodegas (
 	id_Bodega SERIAL PRIMARY KEY,
