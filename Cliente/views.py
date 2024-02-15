@@ -1,8 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from Ubicaciones.models import Ubicaciones
-from Mesero.models import Pedidos
-from Mesero.models import Detallepedidos
+from Mesero.models import *
 from Producto.models import Producto
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -10,6 +9,7 @@ from django.views import View
 from datetime import datetime
 from django.db import transaction
 import json
+from decimal import Decimal
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ActualizarClienteView(View):
@@ -129,50 +129,91 @@ class RealizarPedidoView(View):
     def post(self, request, *args, **kwargs):
         try:
             id_usuario = kwargs.get('id_cuenta')
-
             id_cliente = Clientes.objects.get(id_cuenta=id_usuario)
 
             # Acceder a los datos directamente desde request.POST y request.FILES
-            precio = request.POST.get('precio', 0)
             fecha_pedido = datetime.now()
             tipo_de_pedido = request.POST.get('tipo_de_pedido')
             metodo_de_pago = request.POST.get('metodo_de_pago')
             puntos = request.POST.get('puntos', 0)
             estado_del_pedido = request.POST.get('estado_del_pedido', 'O')
             
+            detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
+            detalles_pedido = json.loads(detalles_pedido_raw)
+
+            total_precio_pedido = Decimal(0)
+            total_descuento = Decimal(0)
+            detalles_factura = []
+
             nuevo_pedido = Pedidos.objects.create(
                 id_cliente=id_cliente,
-                precio=precio,
+                precio=0,
                 tipo_de_pedido=tipo_de_pedido,
                 metodo_de_pago=metodo_de_pago,                
                 fecha_pedido=fecha_pedido,
                 puntos=puntos,
                 estado_del_pedido=estado_del_pedido
             )
-            
-            nuevo_pedido.save()  # Guarda el pedido para obtener el ID asignado
 
-            detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
-            detalles_pedido = json.loads(detalles_pedido_raw)
-
-            
             for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                 id_producto = detalle_pedido_data.get('id_producto')
                 producto_asociado = Producto.objects.get(id_producto=id_producto)
-                cantidad = detalle_pedido_data.get('cantidad_pedido')
-                precio_unitario = detalle_pedido_data.get('costo_unitario')
-                impuesto = detalle_pedido_data.get('impuesto')
+                cantidad = Decimal(detalle_pedido_data.get('cantidad_pedido'))
+                precio_unitario = Decimal(detalle_pedido_data.get('costo_unitario'))
+                impuesto = precio_unitario * Decimal('0.12')  # IVA del 12%
+                descuento = Decimal(detalle_pedido_data.get('descuento', 0))
 
-                detalle_pedido = Detallepedidos.objects.create(
+                precio_total_detalle = (precio_unitario + impuesto) * cantidad - descuento
+                total_precio_pedido += precio_total_detalle
+                total_descuento += descuento
+
+                detalles_factura.append({
+                    'id_producto': id_producto,
+                    'cantidad': cantidad,
+                    'precio_unitario': precio_unitario,
+                    'descuento': descuento,
+                    'valor': precio_total_detalle
+                })
+
+                Detallepedidos.objects.create(
                     id_pedido=nuevo_pedido,
                     id_producto=producto_asociado,
                     cantidad=cantidad,
                     precio_unitario=precio_unitario,
-                    impuesto=impuesto
+                    impuesto=impuesto,
+                    descuento=descuento
                 )
 
+            subtotal = total_precio_pedido - total_descuento  # Subtotal = Total - Descuento
+            iva = subtotal * Decimal('0.12')  # Calcula el IVA
+            total_a_pagar = subtotal + iva  # Total a pagar = Subtotal + IVA
+
+            nuevo_pedido.precio = total_a_pagar  # Actualiza el precio con el total a pagar
+            nuevo_pedido.save()
+
+            nueva_factura = Factura.objects.create(
+                id_pedido=nuevo_pedido,
+                id_cliente=id_cliente,
+                total=total_precio_pedido,
+                iva=iva,
+                descuento=total_descuento,
+                subtotal=subtotal,
+                a_pagar=total_a_pagar
+            )
+
+
+            for detalle in detalles_factura:
+                id_producto = detalle_pedido_data.get('id_producto')
+                producto_instance = get_object_or_404(Producto, id_producto=id_producto)
+                DetalleFactura.objects.create(
+                    id_factura=nueva_factura,
+                    id_producto=producto_instance,
+                    cantidad=detalle['cantidad'],
+                    precio_unitario=detalle['precio_unitario'],
+                    descuento=detalle['descuento'],
+                    valor=detalle['valor']
+                )
 
             return JsonResponse({'success': True, 'message': 'Pedido realizado con éxito.'})
         except Exception as e:
-            # Si ocurre un error, devolver un mensaje de error
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
