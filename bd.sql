@@ -301,12 +301,6 @@ CREATE TABLE DetallePedidos (
 	Descuento NUMERIC(9,2)
 );
 
-CREATE TABLE ReversionPedidos (
-    id_Reversion SERIAL PRIMARY KEY,
-    id_Pedido INTEGER REFERENCES Pedidos(id_Pedido) NOT NULL,
-    id_Cuenta INTEGER REFERENCES Cuenta(id_Cuenta) NOT NULL,
-    FechaCancelacion TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-); 
 
 CREATE TABLE Bodegas (
 	id_Bodega SERIAL PRIMARY KEY,
@@ -553,11 +547,12 @@ CREATE TABLE DetalleFactura (
 	id_combo INTEGER REFERENCES Combo(id_combo),
 	id_promocion INTEGER REFERENCES Promociones(id_promocion)
 );
+
 CREATE TABLE MovimientoInventario (
     id_MovimientoInventario SERIAL PRIMARY KEY,
     id_Cuenta INTEGER REFERENCES Cuenta(id_Cuenta) NOT NULL,
     fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    tipoMovimiento CHAR(1) CHECK (tipoMovimiento IN ('E', 'S', 'P')) NOT NULL
+    tipoMovimiento CHAR(1) CHECK (tipoMovimiento IN ('E', 'S', 'P','R')) NOT NULL
 );
 
 CREATE TABLE DetalleMovimientoInventario (
@@ -568,6 +563,15 @@ CREATE TABLE DetalleMovimientoInventario (
     cantidad NUMERIC(9,2) NOT NULL,
     tipo CHAR(1) CHECK (tipo IN ('E', 'S')) NOT NULL
 );
+
+CREATE TABLE ReversionMovimientoInventario (
+    id_Reversion SERIAL PRIMARY KEY,
+    id_MovimientoInventario INTEGER REFERENCES MovimientoInventario(id_MovimientoInventario) NOT NULL,
+    id_Cuenta INTEGER REFERENCES Cuenta(id_Cuenta) NOT NULL,
+    fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    motivo VARCHAR(255)
+);
+
 -- Crear la tabla Tipopago
 CREATE TABLE Tipopago (
 	id_Tipopago SERIAL PRIMARY KEY,
