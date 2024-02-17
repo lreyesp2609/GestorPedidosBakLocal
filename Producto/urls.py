@@ -1,3 +1,4 @@
+
 from django.urls import path
 from .views import *
 
@@ -28,4 +29,5 @@ urlpatterns = [
     path('fabricarcomponente/', FabricarComponente.as_view(), name='FabricarComponente'),
     path('fabricarproducto/', FabricarProducto.as_view(), name='FabricarProducto'),
     path('procesar_productos/', procesar_productos.as_view(), name='procesar_productos'),
+    path('EliminarProducto/', EliminarProducto.as_view(), name='EliminarProducto'),
 ]
