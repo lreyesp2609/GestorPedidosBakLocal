@@ -561,7 +561,7 @@ CREATE TABLE DetalleMovimientoInventario (
     id_Articulo INTEGER REFERENCES Componente(id_Componente),
     id_Producto INTEGER REFERENCES Producto(id_Producto),
     cantidad NUMERIC(9,2) NOT NULL,
-    tipo CHAR(1) CHECK (tipo IN ('E', 'S')) NOT NULL
+    tipo CHAR(1) CHECK (tipo IN ('E', 'S','R')) NOT NULL
 );
 
 CREATE TABLE ReversionMovimientoInventario (

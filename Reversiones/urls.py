@@ -1,6 +1,6 @@
 from django.urls import path
-from .views import pagina_vacia
+from .views import GuardarReversionMovimiento
 
 urlpatterns = [
-    path('', pagina_vacia, name='pagina_vacia'),
+    path('reversion/<int:movimiento_id>/', GuardarReversionMovimiento.as_view(), name='guardar_reversion_movimiento'),
 ]

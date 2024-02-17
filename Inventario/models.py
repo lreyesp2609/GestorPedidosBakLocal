@@ -8,7 +8,7 @@ class MovimientoInventario(models.Model):
     id_movimientoinventario = models.AutoField(primary_key=True)
     id_cuenta = models.ForeignKey(Cuenta, models.DO_NOTHING, db_column='id_cuenta')
     fechahora = models.DateTimeField(default=timezone.now)
-    tipomovimiento = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida'), ('P', 'Preparacion')])
+    tipomovimiento = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida'), ('P', 'Preparacion'),('R', 'Reversion')])
     
     class Meta:
         managed = False
@@ -20,7 +20,7 @@ class DetalleMovimientoInventario(models.Model):
     id_articulo = models.ForeignKey(Componente, models.DO_NOTHING, db_column='id_articulo', blank=True, null=True)
     id_producto = models.ForeignKey(Producto, models.DO_NOTHING, db_column='id_producto', blank=True, null=True)
     cantidad = models.DecimalField(max_digits=9, decimal_places=2)
-    tipo = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida')])
+    tipo = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida'),('R', 'Reversion')])
     
     class Meta:
         managed = False
