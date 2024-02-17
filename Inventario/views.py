@@ -172,3 +172,36 @@ class EditarInventario(View):
             return JsonResponse({'mensaje': 'Inventario actualizado con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarMovimientosInventario(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            movimientos = MovimientoInventario.objects.all()
+            movimientos_data = []
+
+            for movimiento in movimientos:
+                detalles = DetalleMovimientoInventario.objects.filter(id_movimientoinventario=movimiento)
+                detalles_data = []
+                for detalle in detalles:
+                    detalles_data.append({
+                        'id_detalle_movimiento': detalle.id_detallemovimiento,
+                        'id_articulo': detalle.id_articulo.id_componente if detalle.id_articulo else None,
+                        'id_producto': detalle.id_producto.id_producto if detalle.id_producto else None,
+                        'cantidad': str(detalle.cantidad),
+                        'tipo': detalle.tipo,
+                    })
+
+                movimientos_data.append({
+                    'id_movimiento': movimiento.id_movimientoinventario,
+                    'id_cuenta': movimiento.id_cuenta.id_cuenta,
+                    'fechahora': movimiento.fechahora.strftime("%Y-%m-%d %H:%M:%S"),
+                    'tipo_movimiento': movimiento.tipomovimiento,
+                    'detalles': detalles_data,
+                })
+
+            return JsonResponse({'movimientos_inventario': movimientos_data})
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=400)

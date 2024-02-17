@@ -3,8 +3,8 @@ from django.http import JsonResponse
 from django.views import View
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
-from Inventario.models import MovimientoInventario
-from .models import ReversionMovimientoInventario
+from .models import ReversionMovimientoInventario, MovimientoInventario
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class GuardarReversionMovimiento(View):
@@ -19,10 +19,6 @@ class GuardarReversionMovimiento(View):
                 id_cuenta=movimiento.id_cuenta,  # Utilizamos la misma cuenta del movimiento original
                 motivo=request.POST.get('motivo', '')  # Se espera que 'motivo' sea enviado en el cuerpo de la solicitud POST
             )
-
-            # Actualizar el estado del movimiento original a 'E'
-            movimiento.tipomovimiento = 'E'
-            movimiento.save()
 
             # Puedes devolver una respuesta JSON indicando que la reversión se guardó correctamente
             return JsonResponse({'mensaje': 'Reversión de movimiento guardada correctamente.'})
