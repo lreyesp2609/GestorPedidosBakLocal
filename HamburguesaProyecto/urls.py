@@ -22,6 +22,7 @@ urlpatterns = [
     path('Recompensas/', include('Recompensas.urls')),
     path('Mesero/', include('Mesero.urls')),
     path('pagos/', include('pagos.urls')),
+    path('Reversiones/', include('Reversiones.urls')),
     path('token/', 
           jwt_views.TokenObtainPairView.as_view(), 
           name ='token_obtain_pair'),
