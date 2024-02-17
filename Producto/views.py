@@ -175,6 +175,18 @@ class ListaTiposProductos(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 @method_decorator(csrf_exempt, name='dispatch')
+class EliminarProducto(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            id_producto = request.POST.get('id_producto')
+            producto = Producto.objects.get(id_producto=id_producto)
+            producto.sestado = 0
+            producto.save()
+            return JsonResponse({'mensaje': 'Producto eliminado con éxito'})
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
+@method_decorator(csrf_exempt, name='dispatch')
 class ListaCategorias(View):
     def get(self, request, *args, **kwargs):
         try:
@@ -306,66 +318,67 @@ class CrearProducto(View):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         try:
-            #cuenta = Cuenta.objects.get(nombreusuario=request.user.username)
-            #if cuenta.rol != 'S':
-            #    return JsonResponse({'error': 'No tienes permisos para crear un producto'}, status=403)
-            id_categoria = request.POST.get('id_categoria')
-            id_um = request.POST.get('id_um')
-            imagen_p = request.FILES.get('imagen_p')
-            puntosp = request.POST.get('puntos_p')
-            nombreproducto = request.POST.get('nombre_producto')
-            descripcionproducto = request.POST.get('descripcion_producto')
-            preciounitario = request.POST.get('precio_unitario')
-            iva = request.POST.get('iva')
-            ice = request.POST.get('ice')
-            irbpnr = request.POST.get('irbpnr')
-            image_64_encode=None
-            if imagen_p:
-                try:
-                    image_read = imagen_p.read()
-                    image_64_encode = base64.b64encode(image_read)
-                    image_encoded = image_64_encode.decode('utf-8')
-                except UnidentifiedImageError as img_error:
-                    return JsonResponse({'error': f"Error al procesar imagen: {str(img_error)}"}, status=400)
+            with transaction.atomic():
+                #cuenta = Cuenta.objects.get(nombreusuario=request.user.username)
+                #if cuenta.rol != 'S':
+                #    return JsonResponse({'error': 'No tienes permisos para crear un producto'}, status=403)
+                id_categoria = request.POST.get('id_categoria')
+                id_um = request.POST.get('id_um')
+                imagen_p = request.FILES.get('imagen_p')
+                puntosp = request.POST.get('puntos_p')
+                nombreproducto = request.POST.get('nombre_producto')
+                descripcionproducto = request.POST.get('descripcion_producto')
+                preciounitario = request.POST.get('precio_unitario')
+                iva = request.POST.get('iva')
+                ice = request.POST.get('ice')
+                irbpnr = request.POST.get('irbpnr')
+                image_64_encode=None
+                if imagen_p:
+                    try:
+                        image_read = imagen_p.read()
+                        image_64_encode = base64.b64encode(image_read)
+                        image_encoded = image_64_encode.decode('utf-8')
+                    except UnidentifiedImageError as img_error:
+                        return JsonResponse({'error': f"Error al procesar imagen: {str(img_error)}"}, status=400)
 
-            # Crear el producto
-            categoria = Categorias.objects.get(id_categoria=id_categoria)
-            unidad_medida = UnidadMedida.objects.get(idum=id_um)
-            producto = Producto.objects.create(
-                id_categoria=categoria,
-                id_um=unidad_medida,
-                imagenp=image_64_encode,
-                puntosp=puntosp,
-                codprincipal=obtener_siguiente_codprincipal(),
-                nombreproducto=nombreproducto,
-                descripcionproducto=descripcionproducto,
-                preciounitario=preciounitario,
-                iva=iva,
-                ice=ice,
-                irbpnr=irbpnr,
-                sestado = 1
-            )
-            detalle_comp = json.loads(request.POST.get('detalle_comp'))
-            if detalle_comp:
-                cantidadpadre = Decimal(request.POST.get('cantidad', 0))
-                
-                ensambleproducto = EnsambleProducto.objects.create(
-                    id_producto=producto,
-                    padrecantidad=cantidadpadre,
-                    id_um=unidad_medida  # Ajusta esta línea según tu lógica
+                # Crear el producto
+                categoria = Categorias.objects.get(id_categoria=id_categoria)
+                unidad_medida = UnidadMedida.objects.get(idum=id_um)
+                producto = Producto.objects.create(
+                    id_categoria=categoria,
+                    id_um=unidad_medida,
+                    imagenp=image_64_encode,
+                    puntosp=puntosp,
+                    codprincipal=obtener_siguiente_codprincipal(),
+                    nombreproducto=nombreproducto,
+                    descripcionproducto=descripcionproducto,
+                    preciounitario=preciounitario,
+                    iva=iva,
+                    ice=ice,
+                    irbpnr=irbpnr,
+                    sestado = 1
                 )
-                for detalle_data in detalle_comp:
-                    componente_hijo = Componente.objects.get(id_componente=detalle_data['id'])
-                    um = componente_hijo.id_um
-                    detalleEnsambleProducto = DetalleEnsambleProducto.objects.create(
-                        id_emsamblep=ensambleproducto,
-                        id_componentehijo=componente_hijo,
-                        cantidadhijo=detalle_data['cantidad'],
-                        id_umhijo=um
+                detalle_comp = json.loads(request.POST.get('detalle_comp'))
+                if detalle_comp:
+                    cantidadpadre = Decimal(request.POST.get('cantidad', 0))
+                    
+                    ensambleproducto = EnsambleProducto.objects.create(
+                        id_producto=producto,
+                        padrecantidad=cantidadpadre,
+                        id_um=unidad_medida  # Ajusta esta línea según tu lógica
                     )
-            producto.save()        
+                    for detalle_data in detalle_comp:
+                        componente_hijo = Componente.objects.get(id_componente=detalle_data['id'])
+                        um = componente_hijo.id_um
+                        detalleEnsambleProducto = DetalleEnsambleProducto.objects.create(
+                            id_emsamblep=ensambleproducto,
+                            id_componentehijo=componente_hijo,
+                            cantidadhijo=detalle_data['cantidad'],
+                            id_umhijo=um
+                        )
+                producto.save()        
 
-            return JsonResponse({'mensaje': 'Producto creado con éxito'})
+                return JsonResponse({'mensaje': 'Producto creado con éxito'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
@@ -417,9 +430,7 @@ class EditarProducto(View):
                     producto.imagenp = image_64_encode
                 except Exception as img_error:
                     return JsonResponse({'error': f"Error al procesar imagen: {str(img_error)}"}, status=400)
-
             producto.save()
-
             return JsonResponse({'mensaje': 'Producto editado con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
@@ -844,7 +855,7 @@ class ListarProductos(View):
             search = request.GET.get('search', '')
 
             # Filtrar productos por término de búsqueda
-            productos = Producto.objects.filter(nombreproducto__icontains=search)
+            productos = Producto.objects.filter(nombreproducto__icontains=search,sestado=1)
 
             # Configurar la paginación
             paginator = Paginator(productos, size)
