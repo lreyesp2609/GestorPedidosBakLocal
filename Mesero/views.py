@@ -262,3 +262,5 @@ def pedidos_del_mesero(request, id_mesa):
         return JsonResponse({'pedidos_del_mesero': pedidos_info})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+    
+    

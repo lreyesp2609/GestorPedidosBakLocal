@@ -1,3 +1,4 @@
+import base64
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from Ubicaciones.models import Ubicaciones
@@ -218,23 +219,29 @@ class RealizarPedidoView(View):
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
-def ver_factura_cliente(request, id_cliente, id_pedido):
-    print("ID de cliente recibido:", id_cliente)
+def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
+    print("ID de cuenta recibido:", id_cuenta)
     print("ID de pedido recibido:", id_pedido)
     try:
+        cliente = get_object_or_404(Clientes, id_cuenta=id_cuenta)
         factura = Factura.objects.get(id_pedido_id=id_pedido)
+        
+        # Verificar si el pedido pertenece al cliente dado
+        pedido = Pedidos.objects.get(pk=id_pedido)
+        if pedido.id_cliente_id != cliente.id_cliente:
+            return JsonResponse({'error': 'El pedido no pertenece al cliente dado'}, status=404)
+        
         detalles_factura = DetalleFactura.objects.filter(id_factura_id=factura.id_factura).values()
 
         detalles_factura_list = list(detalles_factura)
 
         # Obtener información del pedido
-        pedido = Pedidos.objects.get(pk=id_pedido)
         tipo_de_pedido = pedido.tipo_de_pedido
         metodo_de_pago = pedido.metodo_de_pago
 
         factura_data = {
             'id_factura': factura.id_factura,
-            'id_cliente': id_cliente,
+            'id_cliente': cliente.id_cliente,
             'fecha_emision': factura.fecha_emision,
             'a_pagar': factura.a_pagar,
             'iva': factura.iva,
@@ -249,38 +256,37 @@ def ver_factura_cliente(request, id_cliente, id_pedido):
         return JsonResponse(factura_data)
     except Factura.DoesNotExist:
         return JsonResponse({'error': 'La factura no existe'}, status=404)
-    
-class pedidos_del_cliente(View):
+    except Clientes.DoesNotExist:
+        return JsonResponse({'error': 'El cliente no existe'}, status=404)
+
+class obtenerPedidos(View):
     def get(self, request, *args, **kwargs):
         try:
-            id_cliente = kwargs.get('id_cliente')
-            
-            # Obtener el cliente basado en su id_cliente
-            cliente = get_object_or_404(Clientes, id_cliente=id_cliente)
-            
-            # Obtener todos los pedidos asociados al cliente
-            pedidos_del_cliente = Pedidos.objects.filter(id_cliente=cliente)
+            id_usuario = kwargs.get('id_cuenta')
 
-            # Inicializar una lista para almacenar la información de los pedidos
-            pedidos_info = []
+            cliente = get_object_or_404(Clientes, id_cuenta=id_usuario)
+            
+            # Obtener todos los pedidos del cliente
+            pedidos_cliente = Pedidos.objects.filter(id_cliente=cliente)
 
-            # Iterar sobre cada pedido asociado al cliente
-            for pedido in pedidos_del_cliente:
-                # Obtener la información del pedido
-                pedido_info = {
+            # Crear una lista para almacenar los datos de cada pedido
+            lista_pedidos = []
+
+            for pedido in pedidos_cliente:
+
+                pedido_data = {
                     'id_pedido': pedido.id_pedido,
-                    'id_cliente': cliente.id_cliente,
-                    'precio': pedido.precio,
-                    'tipo_de_pedido': pedido.tipo_de_pedido,
-                    'metodo_de_pago': pedido.metodo_de_pago,
-                    'fecha_pedido': pedido.fecha_pedido,
-                    'fecha_entrega': pedido.fecha_entrega,
+                    'nombre_usuario': cliente.snombre,
+                    'apellido_usuario': cliente.capellido,
+                    'idcliente': cliente.id_cliente,
+                    'Total': pedido.precio,
+                    'Pago':pedido.estado_pago,
                     'estado_del_pedido': pedido.estado_del_pedido,
-                    'observacion_del_cliente': pedido.observacion_del_cliente,
-                    # Otros campos del pedido que quieras mostrar
+                    'fecha_pedido': pedido.fecha_pedido,
                 }
-                pedidos_info.append(pedido_info)
 
-            return JsonResponse({'pedidos_del_cliente': pedidos_info})
+                lista_pedidos.append(pedido_data)
+
+            return JsonResponse({'Pedidos': lista_pedidos})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)

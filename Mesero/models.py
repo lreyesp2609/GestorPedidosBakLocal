@@ -49,6 +49,9 @@ class Pedidos(models.Model):
     fecha_entrega = models.DateTimeField(blank=True, null=True)
     estado_del_pedido = models.CharField(max_length=1)
     observacion_del_cliente = models.CharField(max_length=500, blank=True, null=True)
+    estado_pago = models.CharField(max_length=100, blank=True, null=True)
+    imagen = models.BinaryField(blank=True, null=True)
+
 
     class Meta:
         managed = False
