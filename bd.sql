@@ -286,7 +286,9 @@ CREATE TABLE Pedidos (
 	Fecha_pedido TIMESTAMP NOT NULL,
 	Fecha_entrega TIMESTAMP,
 	Estado_del_pedido CHAR NOT NULL CHECK (Estado_del_pedido IN ('O', 'P', 'C', 'E','R')) NOT NULL,
-	Observacion_del_cliente VARCHAR(500)
+	Observacion_del_cliente VARCHAR(500),
+    imagen BYTEA,
+    estado_pago varchar(100)
 );
 
 CREATE TABLE DetallePedidos (

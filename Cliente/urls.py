@@ -9,5 +9,7 @@ urlpatterns = [
     path('cliente/<int:id_cuenta>/pedidos/<int:id_pedido>/', ver_factura_cliente, name='ver_factura_cliente'),
     # path('cliente/<int:id_cuenta>/pedidos/', pedidos_del_cliente.as_view(), name='pedidos_del_cliente'),
     path('obtener_pedido/<int:id_cuenta>/', obtenerPedidos.as_view(), name='obtener_pedidos'),
-
+    path('obtener_pedido2/', obtenerPedidos2.as_view(), name='obtener_pedidos2'),
+    path('actualizar_pedido/<int:id_pedido>/', CambiarEstadoPedidos.as_view(), name='actualizar_pedido'),
+    path('actualizar_pago/<int:id_pedido>/', CambiarEstadoPagos.as_view(), name='actualizar_pago'),
 ]

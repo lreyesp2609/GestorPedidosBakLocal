@@ -5,6 +5,7 @@ from Ubicaciones.models import Ubicaciones
 from Mesero.models import *
 from Producto.models import Producto
 from django.views.decorators.csrf import csrf_exempt
+from PIL import Image, UnidentifiedImageError
 from django.utils.decorators import method_decorator
 from django.views import View
 from datetime import datetime
@@ -133,12 +134,23 @@ class RealizarPedidoView(View):
             id_cliente = Clientes.objects.get(id_cuenta=id_usuario)
 
             # Acceder a los datos directamente desde request.POST y request.FILES
+            precio = request.POST.get('precio', 0)
             fecha_pedido = datetime.now()
             tipo_de_pedido = request.POST.get('tipo_de_pedido')
             metodo_de_pago = request.POST.get('metodo_de_pago')
             puntos = request.POST.get('puntos', 0)
             estado_del_pedido = request.POST.get('estado_del_pedido', 'O')
-            
+            estado_pago=request.POST.get('estado_pago','En revisión')
+            imagen_archivo = request.FILES.get('imagen')
+            image_encoded=None
+            if imagen_archivo:
+                try:
+                    image_read = imagen_archivo.read()
+                    image_64_encode = base64.b64encode(image_read)
+                    image_encoded = image_64_encode.decode('utf-8')
+                except UnidentifiedImageError as img_error:
+                    return JsonResponse({'error': f"Error al procesar imagen: {str(img_error)}"}, status=400)
+                
             detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
             detalles_pedido = json.loads(detalles_pedido_raw)
 
@@ -148,12 +160,14 @@ class RealizarPedidoView(View):
 
             nuevo_pedido = Pedidos.objects.create(
                 id_cliente=id_cliente,
-                precio=0,
+                precio=precio,
                 tipo_de_pedido=tipo_de_pedido,
                 metodo_de_pago=metodo_de_pago,                
                 fecha_pedido=fecha_pedido,
                 puntos=puntos,
-                estado_del_pedido=estado_del_pedido
+                estado_del_pedido=estado_del_pedido,
+                estado_pago=estado_pago,
+                imagen=image_64_encode
             )
 
             for detalle_pedido_data in detalles_pedido['detalles_pedido']:
@@ -290,3 +304,110 @@ class obtenerPedidos(View):
             return JsonResponse({'Pedidos': lista_pedidos})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+        
+class obtenerPedidos2(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            pedidos = Pedidos.objects.all()
+
+
+            # Crear una lista para almacenar los datos de cada pedido
+            lista_pedidos = []
+
+            for pedido in pedidos:
+                id_cliente = pedido.id_cliente.id_cuenta
+                
+
+                cliente = get_object_or_404(Clientes, id_cuenta=id_cliente)
+                imagen_base64 = None
+                if pedido.imagen:
+                    try:
+                        byteImg = base64.b64decode(pedido.imagen)
+                        imagen_base64 = base64.b64encode(byteImg).decode('utf-8')
+                    except Exception as img_error:
+                        print(f"Error al procesar imagen: {str(img_error)}")
+                pedido_data = {
+                    'nombre_usuario': cliente.snombre,
+                    'apellido_usuario': cliente.capellido,
+                    'idcliente': cliente.id_cliente,
+                    'id_pedido':pedido.id_pedido,
+                    'Total': pedido.precio,
+                    'metodo_de_pago':pedido.metodo_de_pago,
+                    'Pago': pedido.estado_pago,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'imagen': imagen_base64 
+                }
+
+
+                lista_pedidos.append(pedido_data)
+
+            return JsonResponse({'Pedidos': lista_pedidos})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CambiarEstadoPedidos(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            id_pedido = kwargs.get('id_pedido')
+
+            # Obtener el objeto Pedidos que se desea actualizar
+            pedido = Pedidos.objects.get(id_pedido=id_pedido)
+            
+
+            # Acceder a los datos directamente desde request.POST y request.FILES
+            estado_del_pedido = request.POST.get('estado_del_pedido')
+            dzero = Decimal(str(pedido.precio.replace(',', '.').replace('$', '')))
+            precio_str = request.POST.get('precio', dzero)
+            precio=  precio_str if precio_str else dzero
+           
+            # Actualizar los campos necesarios
+            pedido.estado_del_pedido = estado_del_pedido
+          
+            pedido.precio = precio
+            # Puedes hacer lo mismo para otros campos que desees actualizar
+
+            # Guardar los cambios en la base de datos
+            pedido.save()
+
+            return JsonResponse({'success': True, 'message': 'Pedido actualizado con éxito.'})
+        except Exception as e:
+            # Si ocurre un error, devolver un mensaje de error
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class CambiarEstadoPagos(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            id_pedido = kwargs.get('id_pedido')
+
+            # Obtener el objeto Pedidos que se desea actualizar
+            pedido = Pedidos.objects.get(id_pedido=id_pedido)
+            
+
+            # Acceder a los datos directamente desde request.POST y request.FILES
+            estado_pago = request.POST.get('estado_pago')
+            dzero = Decimal(str(pedido.precio.replace(',', '.').replace('$', '')))
+            precio_str = request.POST.get('precio', dzero)
+            precio=  precio_str if precio_str else dzero
+           
+            # Actualizar los campos necesarios
+            pedido.estado_pago = estado_pago
+          
+            pedido.precio = precio
+            # Puedes hacer lo mismo para otros campos que desees actualizar
+
+            # Guardar los cambios en la base de datos
+            pedido.save()
+
+            return JsonResponse({'success': True, 'message': 'Pago actualizado con éxito.'})
+        except Exception as e:
+            # Si ocurre un error, devolver un mensaje de error
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
