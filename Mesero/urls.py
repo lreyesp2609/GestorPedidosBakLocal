@@ -7,4 +7,5 @@ urlpatterns = [
     #path('mesero/<int:id_mesero>/mesa/<int:id_mesa>/pedidos/', pedidos_del_mesero, name='pedidos_mesero_mesa'),
     path('mesero/mesa/<int:id_mesa>/pedidos/', pedidos_del_mesero, name='pedidos_mesero_mesa'),
     path('pedidos/', ListaPedidos.as_view(), name='pedidos'),
+    path('pedidoslocal/', TomarPedidoSinMesa.as_view(), name='tomar_pedido_2'),
 ]

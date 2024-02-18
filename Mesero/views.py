@@ -203,7 +203,132 @@ class TomarPedido(View):
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
+@method_decorator(csrf_exempt, name='dispatch')
+class TomarPedidoSinMesa(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():  
+                id_mesero = request.POST.get('id_mesero', 1)
+                id_cliente_id = request.POST.get('id_cliente')
+                fecha_pedido = datetime.now()
+                tipo_de_pedido = request.POST.get('tipo_de_pedido')
+                metodo_de_pago = request.POST.get('metodo_de_pago')
+                puntos = request.POST.get('puntos')
+                fecha_entrega = request.POST.get('fecha_entrega', None)
+                estado_del_pedido = request.POST.get('estado_del_pedido')
+                observacion_del_cliente = request.POST.get('observacion_del_cliente')
+                
+                cliente_instance = get_object_or_404(Clientes, id_cliente=id_cliente_id)
 
+                nuevo_pedido = Pedidos.objects.create(
+                    id_cliente=cliente_instance,
+                    precio=0,
+                    tipo_de_pedido=tipo_de_pedido,
+                    metodo_de_pago=metodo_de_pago,
+                    puntos=puntos,
+                    fecha_pedido=fecha_pedido,
+                    fecha_entrega=fecha_entrega,
+                    estado_del_pedido=estado_del_pedido,
+                    observacion_del_cliente=observacion_del_cliente,
+                )
+
+                mesero_instance = get_object_or_404(Meseros, id_mesero=id_mesero)
+
+                detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
+                detalles_pedido = json.loads(detalles_pedido_raw)
+
+                total_precio_pedido = Decimal(0)
+                total_descuento = Decimal(0)
+
+                for detalle_pedido_data in detalles_pedido['detalles_pedido']:
+                    id_producto_id = detalle_pedido_data.get('id_producto')
+                    id_combo_id = detalle_pedido_data.get('id_combo')
+                    precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
+                    impuesto = precio_unitario * Decimal('0.12')  # IVA del 12%
+                    cantidad = Decimal(detalle_pedido_data['cantidad'])
+                    descuento = Decimal(detalle_pedido_data.get('descuento', 0))
+
+                    precio_total_detalle = (precio_unitario + impuesto) * cantidad - descuento
+                    total_precio_pedido += precio_total_detalle
+                    total_descuento += descuento
+
+                    if id_producto_id and not id_combo_id:  # Es un producto individual
+                        producto_instance = get_object_or_404(Producto, id_producto=id_producto_id)
+                        Detallepedidos.objects.create(
+                            id_pedido=nuevo_pedido,
+                            id_producto=producto_instance,
+                            cantidad=cantidad,
+                            precio_unitario=precio_unitario,
+                            impuesto=impuesto,
+                            descuento=descuento,
+                        )
+                    elif id_combo_id and not id_producto_id:  # Es un combo
+                        combo_instance = get_object_or_404(Combo, id_combo=id_combo_id)
+                        Detallepedidos.objects.create(
+                            id_pedido=nuevo_pedido,
+                            id_combo=combo_instance,
+                            cantidad=cantidad,
+                            precio_unitario=precio_unitario,
+                            impuesto=impuesto,
+                            descuento=descuento,
+                        )
+
+                subtotal = total_precio_pedido - total_descuento  # Subtotal = Total - Descuento
+                a_pagar = subtotal + subtotal * Decimal('0.12')  # A pagar = Subtotal + 12% IVA
+
+                nuevo_pedido.precio = a_pagar  # Guardar el monto a pagar en lugar del total
+                nuevo_pedido.save()
+
+
+                # Crear la factura asociada al pedido
+                subtotal = total_precio_pedido - total_descuento
+                iva = subtotal * Decimal('0.12')
+                a_pagar = subtotal + iva
+                nueva_factura = Factura.objects.create(
+                    id_pedido=nuevo_pedido,
+                    id_cliente=cliente_instance,
+                    id_mesero=mesero_instance,
+                    total=total_precio_pedido,
+                    iva=iva,
+                    descuento=total_descuento,
+                    subtotal=subtotal,
+                    a_pagar=a_pagar,
+                )
+
+                # Crear los detalles de la factura
+                for detalle_pedido_data in detalles_pedido['detalles_pedido']:
+                    id_producto_id = detalle_pedido_data.get('id_producto')
+                    id_combo_id = detalle_pedido_data.get('id_combo')
+                    cantidad = Decimal(detalle_pedido_data['cantidad'])
+                    precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
+                    descuento = Decimal(detalle_pedido_data.get('descuento', 0))
+                    valor = (precio_unitario + (precio_unitario * Decimal('0.12'))) * cantidad - descuento
+
+                    if id_producto_id and not id_combo_id:  # Es un producto individual
+                        id_producto_instance = get_object_or_404(Producto, id_producto=id_producto_id)
+                        DetalleFactura.objects.create(
+                            id_factura=nueva_factura,
+                            id_producto=id_producto_instance,
+                            cantidad=cantidad,
+                            precio_unitario=precio_unitario,
+                            descuento=descuento,
+                            valor=valor,
+                        )
+                    elif id_combo_id and not id_producto_id:  # Es un combo
+                        id_combo_instance = get_object_or_404(Combo, id_combo=id_combo_id)
+                        DetalleFactura.objects.create(
+                            id_factura=nueva_factura,
+                            id_combo=id_combo_instance,
+                            cantidad=cantidad,
+                            precio_unitario=precio_unitario,
+                            descuento=descuento,
+                            valor=valor,
+                        )
+
+                return JsonResponse({'mensaje': 'Pedido y factura creados con éxito'})
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=400)
 def ver_factura(request, id_pedido):
     print("ID de pedido recibido:", id_pedido)
     try:
