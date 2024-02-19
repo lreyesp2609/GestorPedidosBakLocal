@@ -18,6 +18,8 @@ from io import BytesIO
 from django.core.paginator import Paginator, EmptyPage, PageNotAnInteger
 from Empleados.models import *
 from GeoSector.models import *
+from horariossemanales.models import *
+import traceback
 
 from PIL import Image
 
@@ -37,6 +39,7 @@ class SucursalesListView(View):
 
             serialized_sucursales = []
             for sucursal in sucursales_list:
+                # Código para redimensionar la imagen
                 if sucursal.imagensucursal:
                     img = Image.open(BytesIO(base64.b64decode(sucursal.imagensucursal)))
                     img = img.resize((500, 500))
@@ -45,12 +48,31 @@ class SucursalesListView(View):
                     imagen_base64_resized = base64.b64encode(buffered.getvalue()).decode('utf-8')
                 else:
                     imagen_base64_resized = None
+                
+                # Información sobre ubicación
                 ubicacion_info = {
                     'id_ubicacion': sucursal.id_ubicacion.id_ubicacion if sucursal.id_ubicacion else None,
                     'latitud': sucursal.id_ubicacion.latitud if sucursal.id_ubicacion else None,
                     'longitud': sucursal.id_ubicacion.longitud if sucursal.id_ubicacion else None,
                     'udescripcion': sucursal.id_ubicacion.udescripcion if sucursal.id_ubicacion else None,
                 }
+
+                # Información sobre horario
+                horario_info = None
+                if sucursal.id_horarios_id:
+                    horario = Horariossemanales.objects.get(id_horarios=sucursal.id_horarios.id_horarios)
+                    detalles_horario = DetalleHorariosSemanales.objects.filter(id_horarios=horario)
+                    horario_info = {
+                        'nombreh': horario.nombreh,
+                        'detalles': [
+                            {
+                                'dia': detalle.dia,
+                                'horainicio': detalle.horainicio.strftime('%H:%M:%S'),
+                                'horafin': detalle.horafin.strftime('%H:%M:%S'),
+                            }
+                            for detalle in detalles_horario
+                        ],
+                    }
                 sucursal_info = {
                     'id_sucursal': sucursal.id_sucursal,
                     'srazon_social': sucursal.srazon_social,
@@ -69,12 +91,12 @@ class SucursalesListView(View):
                     'id_ubicacion': ubicacion_info,
                     'cantidadempleados':cantidaEmp(sucursal.id_sucursal),
                     'imagensucursal': imagen_base64_resized,
+                    'horario': horario_info,
                 }
                 serialized_sucursales.append(sucursal_info)
-
             return JsonResponse({'sucursales': serialized_sucursales}, safe=False)
-
         except Exception as e:
+            traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=500)
 def cantidaEmp(ids):
         if ids:
