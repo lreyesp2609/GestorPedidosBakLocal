@@ -26,6 +26,7 @@ from PIL import Image
 class SucursalesListView(View):
     def get(self, request, *args, **kwargs):
         try:
+            #comentario
             sucursales = Sucursales.objects.all().order_by('id_sucursal')
             paginator = Paginator(sucursales, 200) 
             page = request.POST.get('pageSize')
@@ -73,6 +74,7 @@ class SucursalesListView(View):
                             for detalle in detalles_horario
                         ],
                     }
+
                 sucursal_info = {
                     'id_sucursal': sucursal.id_sucursal,
                     'srazon_social': sucursal.srazon_social,
