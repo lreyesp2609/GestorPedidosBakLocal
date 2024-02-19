@@ -114,11 +114,13 @@ class TomarPedido(View):
                 total_precio_pedido = Decimal(0)
                 total_descuento = Decimal(0)
 
+                # Crear los detalles de detalle de pedido
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                     id_producto_id = detalle_pedido_data.get('id_producto')
                     id_combo_id = detalle_pedido_data.get('id_combo')
                     precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
-                    impuesto = precio_unitario * Decimal('0.12')  # IVA del 12%
+                    # Impuesto establecido en 0 para evitar que se calcule
+                    impuesto = Decimal(0)
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
                     descuento = Decimal(detalle_pedido_data.get('descuento', 0))
 
@@ -147,27 +149,29 @@ class TomarPedido(View):
                             descuento=descuento,
                         )
 
+                # Calcular el subtotal y el total del pedido
                 subtotal = total_precio_pedido - total_descuento  # Subtotal = Total - Descuento
-                a_pagar = subtotal + subtotal * Decimal('0.12')  # A pagar = Subtotal + 12% IVA
 
-                nuevo_pedido.precio = a_pagar  # Guardar el monto a pagar en lugar del total
+                # El impuesto en la factura se calcula correctamente
+                iva_factura = subtotal * Decimal('0.12')
+                a_pagar = subtotal + iva_factura  # A pagar = Subtotal + 12% IVA
+
+                # Guardar el monto a pagar en lugar del total
+                nuevo_pedido.precio = a_pagar
                 nuevo_pedido.save()
 
-
                 # Crear la factura asociada al pedido
-                subtotal = total_precio_pedido - total_descuento
-                iva = subtotal * Decimal('0.12')
-                a_pagar = subtotal + iva
                 nueva_factura = Factura.objects.create(
                     id_pedido=nuevo_pedido,
                     id_cliente=cliente_instance,
                     id_mesero=mesero_instance,
                     total=total_precio_pedido,
-                    iva=iva,
+                    iva=iva_factura,
                     descuento=total_descuento,
                     subtotal=subtotal,
                     a_pagar=a_pagar,
                 )
+
 
                 # Crear los detalles de la factura
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
@@ -176,7 +180,7 @@ class TomarPedido(View):
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
                     precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
                     descuento = Decimal(detalle_pedido_data.get('descuento', 0))
-                    valor = (precio_unitario + (precio_unitario * Decimal('0.12'))) * cantidad - descuento
+                    valor = (precio_unitario * cantidad) - descuento
 
                     if id_producto_id and not id_combo_id:  # Es un producto individual
                         id_producto_instance = get_object_or_404(Producto, id_producto=id_producto_id)
@@ -240,11 +244,13 @@ class TomarPedidoSinMesa(View):
                 total_precio_pedido = Decimal(0)
                 total_descuento = Decimal(0)
 
+                # Crear los detalles de detalle de pedido
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                     id_producto_id = detalle_pedido_data.get('id_producto')
                     id_combo_id = detalle_pedido_data.get('id_combo')
                     precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
-                    impuesto = precio_unitario * Decimal('0.12')  # IVA del 12%
+                    # Impuesto establecido en 0 para evitar que se calcule
+                    impuesto = Decimal(0)
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
                     descuento = Decimal(detalle_pedido_data.get('descuento', 0))
 
@@ -273,27 +279,29 @@ class TomarPedidoSinMesa(View):
                             descuento=descuento,
                         )
 
+                # Calcular el subtotal y el total del pedido
                 subtotal = total_precio_pedido - total_descuento  # Subtotal = Total - Descuento
-                a_pagar = subtotal + subtotal * Decimal('0.12')  # A pagar = Subtotal + 12% IVA
 
-                nuevo_pedido.precio = a_pagar  # Guardar el monto a pagar en lugar del total
+                # El impuesto en la factura se calcula correctamente
+                iva_factura = subtotal * Decimal('0.12')
+                a_pagar = subtotal + iva_factura  # A pagar = Subtotal + 12% IVA
+
+                # Guardar el monto a pagar en lugar del total
+                nuevo_pedido.precio = a_pagar
                 nuevo_pedido.save()
 
-
                 # Crear la factura asociada al pedido
-                subtotal = total_precio_pedido - total_descuento
-                iva = subtotal * Decimal('0.12')
-                a_pagar = subtotal + iva
                 nueva_factura = Factura.objects.create(
                     id_pedido=nuevo_pedido,
                     id_cliente=cliente_instance,
                     id_mesero=mesero_instance,
                     total=total_precio_pedido,
-                    iva=iva,
+                    iva=iva_factura,
                     descuento=total_descuento,
                     subtotal=subtotal,
                     a_pagar=a_pagar,
                 )
+
 
                 # Crear los detalles de la factura
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
@@ -302,7 +310,7 @@ class TomarPedidoSinMesa(View):
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
                     precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
                     descuento = Decimal(detalle_pedido_data.get('descuento', 0))
-                    valor = (precio_unitario + (precio_unitario * Decimal('0.12'))) * cantidad - descuento
+                    valor = (precio_unitario * cantidad) - descuento
 
                     if id_producto_id and not id_combo_id:  # Es un producto individual
                         id_producto_instance = get_object_or_404(Producto, id_producto=id_producto_id)
