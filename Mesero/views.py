@@ -74,8 +74,12 @@ class TodosLosPedidos(View):
 class TomarPedido(View):
     def post(self, request, *args, **kwargs):
         try:
-            with transaction.atomic():  
-                id_mesero = request.POST.get('id_mesero', 1)
+            with transaction.atomic():
+                id_usuario = kwargs.get('id_cuenta')
+                mesero = Meseros.objects.get(id_cuenta=id_usuario)
+                id_mesero = mesero.id_mesero
+                id_sucursal = mesero.id_sucursal_id  # Obtener el id_sucursal del mesero
+
                 id_mesa = request.POST.get('id_mesa')
                 id_cliente_id = request.POST.get('id_cliente')
                 fecha_pedido = datetime.now()
@@ -161,6 +165,7 @@ class TomarPedido(View):
                 nuevo_pedido.save()
 
                 # Crear la factura asociada al pedido
+                numero_factura, numero_factura_desde, numero_factura_hasta = Codigosri.obtener_proximo_numero_factura(id_mesero, id_sucursal)
                 nueva_factura = Factura.objects.create(
                     id_pedido=nuevo_pedido,
                     id_cliente=cliente_instance,
@@ -170,7 +175,13 @@ class TomarPedido(View):
                     descuento=total_descuento,
                     subtotal=subtotal,
                     a_pagar=a_pagar,
+                    codigo_factura=numero_factura,
+                    codigo_autorizacion=Codigoautorizacion.obtener_codigo_autorizacion_valido(),
+                    fecha_emision=datetime.now(),
+                    numero_factura_desde=numero_factura_desde,  # Asigna el valor devuelto por el método
+                    numero_factura_hasta=numero_factura_hasta,  # Asigna el valor devuelto por el método
                 )
+
 
 
                 # Crear los detalles de la factura
@@ -301,8 +312,6 @@ class TomarPedidoSinMesa(View):
                     subtotal=subtotal,
                     a_pagar=a_pagar,
                 )
-
-
                 # Crear los detalles de la factura
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                     id_producto_id = detalle_pedido_data.get('id_producto')
@@ -351,9 +360,23 @@ def ver_factura(request, id_pedido):
         tipo_de_pedido = pedido.tipo_de_pedido
         metodo_de_pago = pedido.metodo_de_pago
 
+        # Obtener la información de la factura
+        codigo_autorizacion_sri = factura.codigo_autorizacion
+        codigo_autorizacion_obj = Codigoautorizacion.objects.get(codigo_autorizacion=codigo_autorizacion_sri)
+        fecha_autorizacion = codigo_autorizacion_obj.fecha_autorizacion
+        fecha_vencimiento = codigo_autorizacion_obj.fecha_vencimiento
+
+        # Obtener la numeración desde el modelo Codigosri
+        numeracion = f"{factura.numero_factura_desde}-{factura.numero_factura_hasta}"
+
         factura_data = {
             'id_factura': factura.id_factura,
             'id_cliente': id_cliente,
+            'codigo_factura': factura.codigo_factura,
+            'codigo_autorizacion_sri': codigo_autorizacion_sri,
+            'autorizacion': fecha_autorizacion,
+            'vencimiento': fecha_vencimiento,
+            'numeracion': numeracion,
             'fecha_emision': factura.fecha_emision,
             'a_pagar': factura.a_pagar,
             'iva': factura.iva,
@@ -370,11 +393,11 @@ def ver_factura(request, id_pedido):
         return JsonResponse({'error': 'La factura no existe'}, status=404)
 
 
-def pedidos_del_mesero(request, id_mesa):
+def pedidos_del_mesero(request, id_mesa, **kwargs):
     try:
+        id_usuario = kwargs.get('id_cuenta')
+        id_mesero = Meseros.objects.get(id_cuenta=id_usuario)
         
-        id_mesero = request.POST.get('id_mesero', 1)
-
         # Obtener todos los pedidos asociados al mesero y a la mesa
         pedidos_del_mesero = Pedidosmesa.objects.filter(id_mesero=id_mesero, id_mesa=id_mesa)
 
@@ -396,4 +419,38 @@ def pedidos_del_mesero(request, id_mesa):
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
     
-    
+class ObtenerMeseroView(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            id_usuario = kwargs.get('id_usuario')
+            
+            if id_usuario:
+                # Si se proporciona un ID de usuario, intenta obtener ese usuario
+                cuenta = get_object_or_404(Cuenta, id_cuenta=id_usuario)
+                mesero = get_object_or_404(Meseros, id_cuenta=cuenta)
+
+                mesero_data = {
+                    'id_mesero': mesero.id_mesero,
+                    'id_sucursal': mesero.id_sucursal.id_sucursal,
+                    'id_administrador': mesero.id_administrador.id_administrador,
+                    'telefono': mesero.telefono,
+                    'apellido': mesero.apellido,
+                    'nombre': mesero.nombre,
+                    'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
+                    'id_cuenta': mesero.id_cuenta.id_cuenta if mesero.id_cuenta else None,
+                    'sestado': mesero.sestado,
+                }
+
+                return JsonResponse({'mesero': mesero_data})
+            else:
+                # Si no se proporciona un ID de usuario, retorna un error
+                return JsonResponse({'error': 'ID de usuario no proporcionado'}, status=400)
+
+        except Cuenta.DoesNotExist:
+            return JsonResponse({'error': 'Cuenta no encontrada'}, status=404)
+
+        except Meseros.DoesNotExist:
+            return JsonResponse({'error': 'Mesero no encontrado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)

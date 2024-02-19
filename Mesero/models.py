@@ -5,6 +5,7 @@ from Cliente.models import Clientes
 from Mesa.models import Mesas
 from Producto.models import *
 from Combos.models import *
+from CodigoFactura.models import *
 #from Promociones.models import Promociones
 # Create your models here.
 class Cuenta(models.Model):
@@ -87,19 +88,24 @@ class Detallepedidos(models.Model):
 
 class Factura(models.Model):
     id_factura = models.AutoField(primary_key=True)
-    id_pedido = models.OneToOneField(Pedidos, on_delete=models.CASCADE, db_column='id_pedido')
-    id_cliente = models.ForeignKey(Clientes, on_delete=models.CASCADE, db_column='id_cliente')
-    id_mesero = models.ForeignKey(Meseros, on_delete=models.CASCADE, db_column='id_mesero')
-    fecha_emision = models.DateTimeField(auto_now_add=True)
+    id_pedido = models.ForeignKey('Pedidos', models.DO_NOTHING, db_column='id_pedido', blank=True, null=True)
+    id_cliente = models.ForeignKey(Clientes, models.DO_NOTHING, db_column='id_cliente', blank=True, null=True)
+    id_mesero = models.ForeignKey('Meseros', models.DO_NOTHING, db_column='id_mesero', blank=True, null=True)
+    fecha_emision = models.DateTimeField(blank=True, null=True)
     total = models.DecimalField(max_digits=10, decimal_places=2)
-    iva = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    descuento = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    subtotal = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-    a_pagar = models.DecimalField(max_digits=10, decimal_places=2, default=0)
-
+    iva = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    descuento = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    subtotal = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    a_pagar = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
+    codigo_factura = models.CharField(max_length=15, blank=True, null=True)
+    codigo_autorizacion = models.CharField(max_length=10, blank=True, null=True)
+    numero_factura_desde = models.CharField(max_length=9)
+    numero_factura_hasta = models.CharField(max_length=9)
+    
     class Meta:
         managed = False
         db_table = 'factura'
+
 
 
 class DetalleFactura(models.Model):
