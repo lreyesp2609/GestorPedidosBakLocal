@@ -59,6 +59,54 @@ class ListaPedidos(View):
             return JsonResponse({'pedidos': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaPedidosMesero(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén la lista de pedidos con información del cliente y detalle del pedido
+            pedidos = Pedidos.objects.filter(estado_del_pedido__in=['O', 'P'])
+
+            # Formatea los datos
+            data = []
+            for pedido in pedidos:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto_data = {
+                        'id_producto': detalle_pedido.id_producto.id_producto,
+                        'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                    }
+                    detalle_pedido_data.append(producto_data)
+
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+
+                data.append(pedido_data)
+
+            return JsonResponse({'pedidos': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
             
 @method_decorator(csrf_exempt, name='dispatch')
 class TodosLosPedidos(View):
