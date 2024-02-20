@@ -10,6 +10,7 @@ from django.db import transaction
 from datetime import datetime
 from Mesero.models import *
 from decimal import Decimal
+from Mesa.models import Mesas
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidos(View):
@@ -60,10 +61,29 @@ class ListaPedidos(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 @method_decorator(csrf_exempt, name='dispatch')
+class ConfirmarPedido(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                id_pedido = request.POST.get('id_pedido')
+                pedido= Pedidos.objects.get(id_pedido=id_pedido)
+                precio = "703,00 €"
+                precio = precio.replace(",", "").replace("€", "").strip()
+
+                # Reemplaza la coma con un punto si es necesario
+                precio = precio.replace(",", ".")
+
+                pedido.precio=Decimal(precio)
+                pedido.estado_del_pedido='E'
+                pedido.save()
+                return JsonResponse({'mensaje': 'Pedido confirmado'})
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=400)
+@method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidosMesero(View):
     def get(self, request, *args, **kwargs):
         try:
-            # Obtén la lista de pedidos con información del cliente y detalle del pedido
             pedidos = Pedidos.objects.filter(estado_del_pedido__in=['O', 'P'])
 
             # Formatea los datos
@@ -80,6 +100,20 @@ class ListaPedidosMesero(View):
                         'descuento': detalle_pedido.descuento,
                     }
                     detalle_pedido_data.append(producto_data)
+
+                # Verifica si el pedido está asociado a una mesa
+                mesa_asociada = Pedidosmesa.objects.filter(id_pedido=pedido.id_pedido).first()
+                mesa_data = None
+
+                if mesa_asociada:
+                    mesa_data = {
+                        'id_mesa': mesa_asociada.id_mesa.id_mesa,
+                        'observacion': mesa_asociada.id_mesa.observacion,
+                        'estado': mesa_asociada.id_mesa.estado,
+                        'activa': mesa_asociada.id_mesa.activa,
+                        'maxpersonas': mesa_asociada.id_mesa.maxpersonas,
+                        'sestado': mesa_asociada.id_mesa.sestado,
+                    }
 
                 pedido_data = {
                     'id_pedido': pedido.id_pedido,
@@ -100,6 +134,7 @@ class ListaPedidosMesero(View):
                     'estado_del_pedido': pedido.estado_del_pedido,
                     'observacion_del_cliente': pedido.observacion_del_cliente,
                     'detalle_pedido': detalle_pedido_data,
+                    'mesa_asociada': mesa_data,
                 }
 
                 data.append(pedido_data)
