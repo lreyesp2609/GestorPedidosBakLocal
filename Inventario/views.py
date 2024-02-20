@@ -23,7 +23,7 @@ class CrearInventario(View):
     def post(self, request, id_bodega, *args, **kwargs):
         try:
             with transaction.atomic():
-            # Obtener datos del pedido desde el request
+                # Obtener datos del pedido desde el request
                 id_proveedor = request.POST.get('id_proveedor')
                 fecha_pedido = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fecha_entrega_esperada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
@@ -31,7 +31,7 @@ class CrearInventario(View):
                 proveedor_instance = get_object_or_404(Proveedores, id_proveedor=id_proveedor)
 
                 bodega_instance = get_object_or_404(Bodegas, id_bodega=id_bodega)
-                idumfinal=None
+
                 # Crear el pedido
                 pedido = Pedidosproveedor.objects.create(
                     id_proveedor=proveedor_instance,
@@ -41,11 +41,16 @@ class CrearInventario(View):
                     estado='P',
                     observacion=observacion_pedido
                 )
-                newmovimiento=MovimientoInventario.objects.create(
+
+                # Crear el movimiento de inventario
+                newmovimiento = MovimientoInventario.objects.create(
                     id_cuenta=Cuenta.objects.get(id_cuenta=1),
-                    tipomovimiento='E'
+                    id_pedido=pedido,  # Guardar la ID del pedido
+                    id_bodega=bodega_instance,  # Guardar la ID de la bodega
+                    tipomovimiento='E',
+                    observacion=request.POST.get('motivo')  # Guardar el motivo
                 )
-                
+
                 detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
 
                 detalles_pedido = json.loads(detalles_pedido_raw)
@@ -195,6 +200,9 @@ class ListarMovimientosInventario(View):
 
                 movimientos_data.append({
                     'id_movimiento': movimiento.id_movimientoinventario,
+                    'id_pedido': movimiento.id_pedido.id_pedido if movimiento.id_pedido else None,  # Agregado
+                    'id_bodega': movimiento.id_bodega.id_bodega if movimiento.id_bodega else None,  # Agregado
+                    'motivo': movimiento.observacion if movimiento.observacion else None,  # Agregado
                     'id_cuenta': movimiento.id_cuenta.id_cuenta,
                     'fechahora': movimiento.fechahora.strftime("%Y-%m-%d %H:%M:%S"),
                     'tipo_movimiento': movimiento.tipomovimiento,
