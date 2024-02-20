@@ -140,9 +140,9 @@ class RealizarPedidoView(View):
             metodo_de_pago = request.POST.get('metodo_de_pago')
             puntos = request.POST.get('puntos', 0)
             estado_del_pedido = request.POST.get('estado_del_pedido', 'O')
-            estado_pago=request.POST.get('estado_pago','En revisión')
+            estado_pago = request.POST.get('estado_pago', 'En revisión')
             imagen_archivo = request.FILES.get('imagen')
-            image_encoded=None
+            image_encoded = None
             if imagen_archivo:
                 try:
                     image_read = imagen_archivo.read()
@@ -150,7 +150,7 @@ class RealizarPedidoView(View):
                     image_encoded = image_64_encode.decode('utf-8')
                 except UnidentifiedImageError as img_error:
                     return JsonResponse({'error': f"Error al procesar imagen: {str(img_error)}"}, status=400)
-                
+
             detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
             detalles_pedido = json.loads(detalles_pedido_raw)
 
@@ -162,7 +162,7 @@ class RealizarPedidoView(View):
                 id_cliente=id_cliente,
                 precio=precio,
                 tipo_de_pedido=tipo_de_pedido,
-                metodo_de_pago=metodo_de_pago,                
+                metodo_de_pago=metodo_de_pago,
                 fecha_pedido=fecha_pedido,
                 puntos=puntos,
                 estado_del_pedido=estado_del_pedido,
@@ -175,10 +175,11 @@ class RealizarPedidoView(View):
                 producto_asociado = Producto.objects.get(id_producto=id_producto)
                 cantidad = Decimal(detalle_pedido_data.get('cantidad_pedido'))
                 precio_unitario = Decimal(detalle_pedido_data.get('costo_unitario'))
-                impuesto = precio_unitario * Decimal('0.12')  # IVA del 12%
+                # Impuesto establecido en 0 para evitar que se calcule
+                impuesto = Decimal(0)
                 descuento = Decimal(detalle_pedido_data.get('descuento', 0))
 
-                precio_total_detalle = (precio_unitario + impuesto) * cantidad - descuento
+                precio_total_detalle = (precio_unitario * cantidad) - descuento
                 total_precio_pedido += precio_total_detalle
                 total_descuento += descuento
 
@@ -216,9 +217,8 @@ class RealizarPedidoView(View):
                 a_pagar=total_a_pagar
             )
 
-
             for detalle in detalles_factura:
-                id_producto = detalle_pedido_data.get('id_producto')
+                id_producto = detalle.get('id_producto')
                 producto_instance = get_object_or_404(Producto, id_producto=id_producto)
                 DetalleFactura.objects.create(
                     id_factura=nueva_factura,
@@ -232,6 +232,7 @@ class RealizarPedidoView(View):
             return JsonResponse({'success': True, 'message': 'Pedido realizado con éxito.'})
         except Exception as e:
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
 
 def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
     print("ID de cuenta recibido:", id_cuenta)

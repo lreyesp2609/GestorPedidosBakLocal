@@ -50,8 +50,8 @@ INSTALLED_APPS = [
     'rest_framework', 
     'rest_framework_simplejwt.token_blacklist',
     'pagos',
-    'Reversiones'
-
+    'Reversiones',
+    'CodigoFactura'
 ]
 
 DATA_UPLOAD_MAX_MEMORY_SIZE = 1024 * 1024 * 10
