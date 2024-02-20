@@ -3,13 +3,17 @@ from Producto.models import *
 from Bodega.models import *
 from django.utils import timezone
 from Login.models import Cuenta
+from Mesero.models import Pedidos
 
 class MovimientoInventario(models.Model):
     id_movimientoinventario = models.AutoField(primary_key=True)
     id_cuenta = models.ForeignKey(Cuenta, models.DO_NOTHING, db_column='id_cuenta')
+    id_pedido = models.ForeignKey(Pedidos, models.DO_NOTHING, db_column='id_pedido', blank=True, null=True)
+    id_bodega = models.ForeignKey(Bodegas, models.DO_NOTHING, db_column='id_bodega', blank=True, null=True)
     fechahora = models.DateTimeField(default=timezone.now)
-    tipomovimiento = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida'), ('P', 'Preparacion'),('R', 'Reversion')])
-    
+    tipomovimiento = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida'), ('P', 'Preparacion'), ('R', 'Reversion')])
+    observacion = models.CharField(max_length=500)
+
     class Meta:
         managed = False
         db_table = 'movimientoinventario'
@@ -20,7 +24,7 @@ class DetalleMovimientoInventario(models.Model):
     id_articulo = models.ForeignKey(Componente, models.DO_NOTHING, db_column='id_articulo', blank=True, null=True)
     id_producto = models.ForeignKey(Producto, models.DO_NOTHING, db_column='id_producto', blank=True, null=True)
     cantidad = models.DecimalField(max_digits=9, decimal_places=2)
-    tipo = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida'),('R', 'Reversion')])
+    tipo = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida')])
     
     class Meta:
         managed = False

@@ -553,6 +553,9 @@ CREATE TABLE DetalleFactura (
 CREATE TABLE MovimientoInventario (
     id_MovimientoInventario SERIAL PRIMARY KEY,
     id_Cuenta INTEGER REFERENCES Cuenta(id_Cuenta) NOT NULL,
+    id_pedido INTEGER REFERENCES Pedidos(id_Pedido),
+    id_bodega INTEGER REFERENCES Bodegas(id_Bodega),
+    observacion VARCHAR(500)
     fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     tipoMovimiento CHAR(1) CHECK (tipoMovimiento IN ('E', 'S', 'P','R')) NOT NULL
 );
