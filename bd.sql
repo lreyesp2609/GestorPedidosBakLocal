@@ -530,13 +530,18 @@ CREATE TABLE Factura (
     id_pedido INTEGER REFERENCES Pedidos(id_pedido),
     id_cliente INTEGER REFERENCES Clientes(id_cliente),
     id_mesero INTEGER REFERENCES Meseros(id_mesero),
-    fecha_emision TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    total NUMERIC(10, 2) NOT NULL,
-    iva NUMERIC(10, 2) DEFAULT 0,
-    descuento NUMERIC(10, 2) DEFAULT 0,
-    subtotal NUMERIC(10, 2) DEFAULT 0,
-    a_pagar NUMERIC(10, 2) DEFAULT 0
+    fecha_emision TIMESTAMP,
+    total NUMERIC(10, 2),
+    iva NUMERIC(10, 2),
+    descuento NUMERIC(10, 2),
+    subtotal NUMERIC(10, 2),
+    a_pagar NUMERIC(10, 2),
+    codigo_factura VARCHAR(15),
+    codigo_autorizacion VARCHAR(10),
+    numero_factura_desde VARCHAR(9),
+    numero_factura_hasta VARCHAR(9)
 );
+
 
 CREATE TABLE DetalleFactura (
     id_detallefactura SERIAL PRIMARY KEY,
@@ -602,4 +607,22 @@ CREATE TABLE Pagos (
     TipoPago CHAR(1) CHECK (TipoPago IN ('H', 'S', 'T', 'M')) NOT NULL,
     idPeriodo INTEGER REFERENCES Periodo(id_Periodo) NOT NULL,
     HoraDePago TIMESTAMP NOT NULL
+);
+
+CREATE TABLE Codigoautorizacion (
+    id_codigosauto SERIAL PRIMARY KEY,
+    id_administrador INTEGER REFERENCES Administrador(id_administrador),
+    codigo_autorizacion VARCHAR(10),
+    fecha_vencimiento DATE,
+    fecha_autorizacion DATE
+);
+
+CREATE TABLE Codigosri (
+    id_codigosri SERIAL PRIMARY KEY,
+    id_administrador INTEGER REFERENCES Administrador(id_administrador),
+    numero_factura_desde VARCHAR(9),
+    numero_factura_hasta VARCHAR(9),
+    rango_desde VARCHAR(9),
+    rango_hasta VARCHAR(9),
+    UNIQUE (numero_factura_desde, numero_factura_hasta)
 );
