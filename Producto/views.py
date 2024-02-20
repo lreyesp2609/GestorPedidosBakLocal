@@ -980,11 +980,10 @@ class procesar_productos(View):
                 pedido=Pedidos.objects.get(id_pedido=id_ped)
                 if productos_str:
                     productos = [json.loads(producto) for producto in productos_str]
-                    
                     for producto in productos:
                         id_producto = int(producto['id_producto'])
                         cantidad = int(producto['cantidad'])
-                        self.procesar_producto(id_producto, cantidad, id_bodega)
+                        self.procesar_producto(id_producto, cantidad, id_bodega,pedido)
                 pedido.estado_del_pedido='P'
                 precio_str = pedido.precio
                 precio_str_limpio = ''.join(caracter for caracter in precio_str if caracter.isdigit() or caracter == '.')
@@ -998,25 +997,58 @@ class procesar_productos(View):
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
 
-    def procesar_producto( self,id_pro, cantidad,idbodega):
+    def procesar_producto(self, id_pro, cantidad, idbodega,idpedido):
         print('holi')
         producto = Producto.objects.get(id_producto=id_pro)
-        ensamble=EnsambleProducto.objects.get(id_producto=producto)
-        detalles=DetalleEnsambleProducto.objects.filter(id_emsamblep=ensamble)
+        print('holi2')
+        # Verificar si existe un ensamble para el producto
+        ensambles = EnsambleProducto.objects.filter(id_producto=producto)
         bodega = Bodegas.objects.get(id_bodega=idbodega)
-        newmovimiento=MovimientoInventario.objects.create(
+        if not ensambles.exists():
+            print('holi3')
+            newmovimiento = MovimientoInventario.objects.create(
+                id_cuenta=Cuenta.objects.get(id_cuenta=1),
+                tipomovimiento='P',
+                id_pedido=idpedido,
+                id_bodega=bodega
+            )
+            inventario_producto = Inventario.objects.get(id_producto=producto, id_bodega=bodega)
+            detalle= DetalleMovimientoInventario.objects.create(
+                id_movimientoinventario=newmovimiento,
+                id_producto=producto,
+                cantidad=cantidad,
+                tipo='S'
+            )
+            print('holi4')
+            inventario_producto.cantidad_disponible -= cantidad
+            inventario_producto.save()
+            return
+
+        # Si hay ensamble, proceder con el procesamiento
+        ensamble = ensambles.first()
+        detalles = DetalleEnsambleProducto.objects.filter(id_emsamblep=ensamble)
+        newmovimiento = MovimientoInventario.objects.create(
             id_cuenta=Cuenta.objects.get(id_cuenta=1),
-            tipomovimiento='P'
+            tipomovimiento='P',
+            id_pedido=idpedido,
+            id_bodega=bodega
         )
+
         for detalle in detalles:
             print('holixd')
             print('Cantidad:')
             print(cantidad)
-            componente= detalle.id_componentehijo
-            cantidaddet=detalle.cantidadhijo
+            detalle= DetalleMovimientoInventario.objects.create(
+                id_movimientoinventario=newmovimiento,
+                id_articulo=detalle.id_componentehijo,
+                cantidad=detalle.cantidadhijo,
+                tipo='S'
+            )
+            componente = detalle.id_componentehijo
+            cantidaddet = detalle.cantidadhijo * cantidad
             inventario_componente = Inventario.objects.get(id_componente=componente, id_bodega=bodega)
             print(inventario_componente.cantidad_disponible)
-            inventario_componente.cantidad_disponible -=cantidaddet*cantidad
+            inventario_componente.cantidad_disponible -= cantidaddet * cantidad
             inventario_componente.save()
         print(f'Procesando producto con ID {producto} y cantidad {cantidad}')
  
