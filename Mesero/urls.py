@@ -9,4 +9,5 @@ urlpatterns = [
     path('pedidos/', ListaPedidos.as_view(), name='pedidos'),
     path('pedidoslocal/', TomarPedidoSinMesa.as_view(), name='tomar_pedido_2'),
     path('listpedidos/', ListaPedidosMesero.as_view(), name='ListaPedidosMesero'),
+    path('confirmarpedido/', ConfirmarPedido.as_view(), name='ConfirmarPedido'),
 ]
