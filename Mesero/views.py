@@ -305,8 +305,11 @@ class TomarPedido(View):
 class TomarPedidoSinMesa(View):
     def post(self, request, *args, **kwargs):
         try:
-            with transaction.atomic():  
-                id_mesero = request.POST.get('id_mesero', 1)
+            with transaction.atomic():
+                id_usuario = kwargs.get('id_cuenta')
+                mesero = Meseros.objects.get(id_cuenta=id_usuario)
+                id_mesero = mesero.id_mesero
+                id_sucursal = mesero.id_sucursal_id  # Obtener el id_sucursal del mesero
                 id_cliente_id = request.POST.get('id_cliente')
                 fecha_pedido = datetime.now()
                 tipo_de_pedido = request.POST.get('tipo_de_pedido')
@@ -329,15 +332,11 @@ class TomarPedidoSinMesa(View):
                     estado_del_pedido=estado_del_pedido,
                     observacion_del_cliente=observacion_del_cliente,
                 )
-
                 mesero_instance = get_object_or_404(Meseros, id_mesero=id_mesero)
-
                 detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
                 detalles_pedido = json.loads(detalles_pedido_raw)
-
                 total_precio_pedido = Decimal(0)
                 total_descuento = Decimal(0)
-
                 # Crear los detalles de detalle de pedido
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                     id_producto_id = detalle_pedido_data.get('id_producto')
@@ -375,16 +374,13 @@ class TomarPedidoSinMesa(View):
 
                 # Calcular el subtotal y el total del pedido
                 subtotal = total_precio_pedido - total_descuento  # Subtotal = Total - Descuento
-
-                # El impuesto en la factura se calcula correctamente
                 iva_factura = subtotal * Decimal('0.12')
                 a_pagar = subtotal + iva_factura  # A pagar = Subtotal + 12% IVA
-
-                # Guardar el monto a pagar en lugar del total
                 nuevo_pedido.precio = a_pagar
                 nuevo_pedido.save()
 
                 # Crear la factura asociada al pedido
+                numero_factura, numero_factura_desde, numero_factura_hasta = Codigosri.obtener_proximo_numero_factura(id_mesero, id_sucursal)
                 nueva_factura = Factura.objects.create(
                     id_pedido=nuevo_pedido,
                     id_cliente=cliente_instance,
@@ -394,7 +390,15 @@ class TomarPedidoSinMesa(View):
                     descuento=total_descuento,
                     subtotal=subtotal,
                     a_pagar=a_pagar,
+                    codigo_factura=numero_factura,
+                    codigo_autorizacion=Codigoautorizacion.obtener_codigo_autorizacion_valido(),
+                    fecha_emision=datetime.now(),
+                    numero_factura_desde=numero_factura_desde,  # Asigna el valor devuelto por el método
+                    numero_factura_hasta=numero_factura_hasta,  # Asigna el valor devuelto por el método
                 )
+
+
+
                 # Crear los detalles de la factura
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                     id_producto_id = detalle_pedido_data.get('id_producto')
@@ -432,26 +436,32 @@ class TomarPedidoSinMesa(View):
 def ver_factura(request, id_pedido):
     print("ID de pedido recibido:", id_pedido)
     try:
+        print('aver')
         factura = Factura.objects.get(id_pedido_id=id_pedido)
         detalles_factura = DetalleFactura.objects.filter(id_factura_id=factura.id_factura).values()
 
         detalles_factura_list = list(detalles_factura)
         id_cliente = factura.id_cliente_id
-
+        print('aver')
         # Obtener información del pedido
         pedido = Pedidos.objects.get(pk=id_pedido)
+        print('averx')
         tipo_de_pedido = pedido.tipo_de_pedido
+        print('averx1')
         metodo_de_pago = pedido.metodo_de_pago
-
+        print('aver2')
         # Obtener la información de la factura
         codigo_autorizacion_sri = factura.codigo_autorizacion
+        print('averx3')
         codigo_autorizacion_obj = Codigoautorizacion.objects.get(codigo_autorizacion=codigo_autorizacion_sri)
+        print('averx4')
         fecha_autorizacion = codigo_autorizacion_obj.fecha_autorizacion
+        print('averx5')
         fecha_vencimiento = codigo_autorizacion_obj.fecha_vencimiento
-
+        print('aver3')
         # Obtener la numeración desde el modelo Codigosri
         numeracion = f"{factura.numero_factura_desde}-{factura.numero_factura_hasta}"
-
+        print('aver4')
         factura_data = {
             'id_factura': factura.id_factura,
             'id_cliente': id_cliente,
@@ -470,7 +480,7 @@ def ver_factura(request, id_pedido):
             'metodo_de_pago': metodo_de_pago,  
             'detalles_factura': detalles_factura_list,
         }
-
+        print('aver5')
         return JsonResponse(factura_data)
     except Factura.DoesNotExist:
         return JsonResponse({'error': 'La factura no existe'}, status=404)
