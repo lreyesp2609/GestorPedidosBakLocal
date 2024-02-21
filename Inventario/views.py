@@ -10,7 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from decimal import Decimal 
 from Proveedores.models import *
-from datetime import datetime
+from datetime import datetime, timezone
 import traceback
 import json
 from django.db import transaction
@@ -190,19 +190,24 @@ class ListarMovimientosInventario(View):
                 detalles = DetalleMovimientoInventario.objects.filter(id_movimientoinventario=movimiento)
                 detalles_data = []
                 for detalle in detalles:
+                    # Obtener el nombre del artículo si existe
+                    nombre_articulo = detalle.id_articulo.nombre if detalle.id_articulo else None
+                    # Obtener el nombre del producto si existe
+                    nombre_producto = detalle.id_producto.nombreproducto if detalle.id_producto else None
+
                     detalles_data.append({
                         'id_detalle_movimiento': detalle.id_detallemovimiento,
-                        'id_articulo': detalle.id_articulo.id_componente if detalle.id_articulo else None,
-                        'id_producto': detalle.id_producto.id_producto if detalle.id_producto else None,
+                        'nombre_articulo': nombre_articulo,
+                        'nombre_producto': nombre_producto,
                         'cantidad': str(detalle.cantidad),
                         'tipo': detalle.tipo,
                     })
 
                 movimientos_data.append({
                     'id_movimiento': movimiento.id_movimientoinventario,
-                    'id_pedido': movimiento.id_pedido.id_pedido if movimiento.id_pedido else None,  # Agregado
-                    'id_bodega': movimiento.id_bodega.id_bodega if movimiento.id_bodega else None,  # Agregado
-                    'motivo': movimiento.observacion if movimiento.observacion else None,  # Agregado
+                    'id_pedido': movimiento.id_pedido.id_pedido if movimiento.id_pedido else None,
+                    'id_bodega': movimiento.id_bodega.id_bodega if movimiento.id_bodega else None,
+                    'motivo': movimiento.observacion if movimiento.observacion else None,
                     'id_cuenta': movimiento.id_cuenta.id_cuenta,
                     'fechahora': movimiento.fechahora.strftime("%Y-%m-%d %H:%M:%S"),
                     'tipo_movimiento': movimiento.tipomovimiento,
@@ -210,6 +215,40 @@ class ListarMovimientosInventario(View):
                 })
 
             return JsonResponse({'movimientos_inventario': movimientos_data})
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=400)
+
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CrearMovimientoReversion(View):
+    @transaction.atomic
+    def post(self, request, id_movimiento_origen, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                movimiento_origen = get_object_or_404(MovimientoInventario, id_movimientoinventario=id_movimiento_origen)
+
+                # Crear el nuevo movimiento de tipo 'R'
+                nuevo_movimiento_reversion = MovimientoInventario.objects.create(
+                    id_cuenta=movimiento_origen.id_cuenta,
+                    id_pedido=movimiento_origen.id_pedido,
+                    id_bodega=movimiento_origen.id_bodega,
+                    tipomovimiento='R',
+                    observacion=request.POST.get('observacion')
+                )
+
+                # Copiar los detalles del movimiento original al nuevo movimiento
+                detalles_origen = DetalleMovimientoInventario.objects.filter(id_movimientoinventario=movimiento_origen)
+                for detalle_origen in detalles_origen:
+                    DetalleMovimientoInventario.objects.create(
+                        id_movimientoinventario=nuevo_movimiento_reversion,
+                        id_articulo=detalle_origen.id_articulo,
+                        id_producto=detalle_origen.id_producto,
+                        cantidad=detalle_origen.cantidad,
+                        tipo=detalle_origen.tipo
+                    )
+
+                return JsonResponse({'mensaje': 'Nuevo movimiento de reversion creado con éxito'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
