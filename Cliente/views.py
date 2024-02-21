@@ -12,6 +12,7 @@ from datetime import datetime
 from django.db import transaction
 import json
 from decimal import Decimal
+import traceback
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ActualizarClienteView(View):
@@ -290,8 +291,10 @@ def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
         }
         return JsonResponse(factura_data)
     except Factura.DoesNotExist:
+        traceback.print_exc()
         return JsonResponse({'error': 'La factura no existe'}, status=404)
     except Clientes.DoesNotExist:
+        traceback.print_exc()
         return JsonResponse({'error': 'El cliente no existe'}, status=404)
 
 class obtenerPedidos(View):
