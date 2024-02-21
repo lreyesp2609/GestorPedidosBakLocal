@@ -253,10 +253,31 @@ def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
         # Obtener información del pedido
         tipo_de_pedido = pedido.tipo_de_pedido
         metodo_de_pago = pedido.metodo_de_pago
+        detalles_factura_list = list(detalles_factura)
+        id_cliente = factura.id_cliente_id
+
+        # Obtener información del pedido
+        pedido = Pedidos.objects.get(pk=id_pedido)
+        tipo_de_pedido = pedido.tipo_de_pedido
+        metodo_de_pago = pedido.metodo_de_pago
+
+        # Obtener la información de la factura
+        codigo_autorizacion_sri = factura.codigo_autorizacion
+        codigo_autorizacion_obj = Codigoautorizacion.objects.get(codigo_autorizacion=codigo_autorizacion_sri)
+        fecha_autorizacion = codigo_autorizacion_obj.fecha_autorizacion
+        fecha_vencimiento = codigo_autorizacion_obj.fecha_vencimiento
+
+        # Obtener la numeración desde el modelo Codigosri
+        numeracion = f"{factura.numero_factura_desde}-{factura.numero_factura_hasta}"
 
         factura_data = {
             'id_factura': factura.id_factura,
-            'id_cliente': cliente.id_cliente,
+            'id_cliente': id_cliente,
+            'codigo_factura': factura.codigo_factura,
+            'codigo_autorizacion_sri': codigo_autorizacion_sri,
+            'autorizacion': fecha_autorizacion,
+            'vencimiento': fecha_vencimiento,
+            'numeracion': numeracion,
             'fecha_emision': factura.fecha_emision,
             'a_pagar': factura.a_pagar,
             'iva': factura.iva,
@@ -267,7 +288,6 @@ def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
             'metodo_de_pago': metodo_de_pago,  
             'detalles_factura': detalles_factura_list,
         }
-
         return JsonResponse(factura_data)
     except Factura.DoesNotExist:
         return JsonResponse({'error': 'La factura no existe'}, status=404)
