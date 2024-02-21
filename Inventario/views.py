@@ -45,7 +45,7 @@ class CrearInventario(View):
                 # Crear el movimiento de inventario
                 newmovimiento = MovimientoInventario.objects.create(
                     id_cuenta=Cuenta.objects.get(id_cuenta=1),
-                    id_pedidoproveedor=pedido,  # Guardar la ID del pedido
+                    id_pedido=pedido,  # Guardar la ID del pedido
                     id_bodega=bodega_instance,  # Guardar la ID de la bodega
                     tipomovimiento='E',
                     observacion=request.POST.get('motivo')  # Guardar el motivo
@@ -248,7 +248,26 @@ class CrearMovimientoReversion(View):
                         tipo=detalle_origen.tipo
                     )
 
-                return JsonResponse({'mensaje': 'Nuevo movimiento de reversion creado con éxito'})
+                    # Actualizar el inventario
+                    if detalle_origen.id_producto:
+                        producto_instance = detalle_origen.id_producto
+                        componente_instance = None
+                    elif detalle_origen.id_articulo:
+                        producto_instance = None
+                        componente_instance = detalle_origen.id_articulo
+
+                    inventario, created = Inventario.objects.get_or_create(
+                        id_bodega=movimiento_origen.id_bodega,
+                        id_producto=producto_instance,
+                        id_componente=componente_instance,
+                        defaults={'cantidad_disponible': detalle_origen.cantidad, 'costo_unitario': None}
+                    )
+
+                    if not created:
+                        inventario.cantidad_disponible += detalle_origen.cantidad
+                        inventario.save()
+
+                return JsonResponse({'mensaje': 'Nuevo movimiento de reversión creado con éxito'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
