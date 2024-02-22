@@ -20,6 +20,7 @@ class MovimientoInventario(models.Model):
         managed = False
         db_table = 'movimientoinventario'
 
+
 class DetalleMovimientoInventario(models.Model):
     id_detallemovimiento = models.AutoField(primary_key=True)
     id_movimientoinventario = models.ForeignKey(MovimientoInventario, models.DO_NOTHING, db_column='id_movimientoinventario')
