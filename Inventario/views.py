@@ -41,11 +41,11 @@ class CrearInventario(View):
                     estado='P',
                     observacion=observacion_pedido
                 )
-
+ #xDDD
                 # Crear el movimiento de inventario
                 newmovimiento = MovimientoInventario.objects.create(
                     id_cuenta=Cuenta.objects.get(id_cuenta=1),
-                    id_pedido=pedido,  # Guardar la ID del pedido
+                    id_pedidoproveedor=pedido,  # Guardar la ID del pedido
                     id_bodega=bodega_instance,  # Guardar la ID de la bodega
                     tipomovimiento='E',
                     observacion=request.POST.get('motivo')  # Guardar el motivo
