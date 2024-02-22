@@ -1011,10 +1011,10 @@ class procesar_productos(View):
                 id_bodega=bodega
             )
             inventario_producto = Inventario.objects.get(id_producto=producto, id_bodega=bodega)
-            detalle= DetalleMovimientoInventario.objects.create(
+            detallem= DetalleMovimientoInventario.objects.create(
                 id_movimientoinventario=newmovimiento,
-                id_producto=producto,
-                cantidad=cantidad,
+                id_articulo=detalle.id_componentehijo,
+                cantidad=detalle.cantidadhijo,
                 tipo='S'
             )
             inventario_producto.cantidad_disponible -= cantidad
