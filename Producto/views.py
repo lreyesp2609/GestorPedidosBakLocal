@@ -1008,7 +1008,8 @@ class procesar_productos(View):
                 id_cuenta=Cuenta.objects.get(id_cuenta=1),
                 tipomovimiento='P',
                 id_pedido=idpedido,
-                id_bodega=bodega
+                id_bodega=bodega,
+                sestado='1'
             )
             inventario_producto = Inventario.objects.get(id_producto=producto, id_bodega=bodega)
             detalle= DetalleMovimientoInventario.objects.create(
