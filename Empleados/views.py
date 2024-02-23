@@ -102,6 +102,101 @@ def listar_empleados(request, **kwargs):
         return JsonResponse({'empleados': empleados})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+
+def listar_empleados_tipo(request, idsucursal=None, tipo_empleado=None):
+    try:
+        empleados_data = []
+
+        # Si se proporciona un tipo de empleado pero no una sucursal
+        if tipo_empleado and not idsucursal:
+            return JsonResponse({'error': 'Debe especificar una sucursal'}, status=400)
+        
+        # Si no se proporciona un tipo de empleado ni una sucursal
+        if not tipo_empleado and not idsucursal:
+            return JsonResponse({'error': 'Debe especificar al menos una sucursal o un tipo de empleado'}, status=400)
+
+        # Si se proporciona tanto una sucursal como un tipo de empleado
+        if idsucursal and tipo_empleado:
+            if tipo_empleado == 'jefe_cocina':
+                empleados = JefeCocina.objects.filter(id_sucursal=idsucursal)
+            elif tipo_empleado == 'motorizado':
+                empleados = Motorizado.objects.filter(id_sucursal=idsucursal)
+            elif tipo_empleado == 'mesero':
+                empleados = Mesero.objects.filter(id_sucursal=idsucursal)
+            else:
+                return JsonResponse({'error': 'Tipo de empleado no válido'}, status=400)
+
+            empleados_data = [{'nombre': empleado.nombre, 'apellido': empleado.apellido, 'telefono': empleado.telefono,  'fecha': empleado.fecha_registro} for empleado in empleados]
+
+            if not empleados_data:
+                return JsonResponse({'mensaje': 'No hay empleados de tipo {} en la sucursal {}'.format(tipo_empleado, idsucursal)})
+
+        # Si se proporciona solo una sucursal
+        if idsucursal and not tipo_empleado:
+            jefes_cocina = JefeCocina.objects.filter(id_sucursal=idsucursal)
+            motorizados = Motorizado.objects.filter(id_sucursal=idsucursal)
+            meseros = Mesero.objects.filter(id_sucursal=idsucursal)
+            
+            empleados = list(jefes_cocina) + list(motorizados) + list(meseros)        
+            empleados_data = [{'nombre': empleado.nombre, 'apellido': empleado.apellido, 'telefono': empleado.telefono, 'fecha': empleado.fecha_registro} for empleado in empleados]
+
+            if not empleados_data:
+                return JsonResponse({'mensaje': 'No hay empleados en la sucursal {}'.format(idsucursal)})
+
+        return JsonResponse({'empleados': empleados_data})
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
+
+def listar_todos_los_empleados(request):
+    try:
+        # Obtener todos los empleados de los diferentes modelos
+        meseros = Mesero.objects.prefetch_related('id_sucursal').all()
+        jefes_cocina = JefeCocina.objects.prefetch_related('id_sucursal').all()
+        motorizados = Motorizado.objects.prefetch_related('id_sucursal').all()
+
+        # Crear una lista para almacenar los datos de todos los empleados
+        empleados_data = []
+
+        # Agregar los datos de los meseros
+        for mesero in meseros:
+            empleados_data.append({
+                'sucursal': mesero.id_sucursal.snombre,
+                'ciudad': mesero.id_sucursal.sdireccion,
+                'nombre': mesero.nombre,
+                'apellido': mesero.apellido,
+                'telefono': mesero.telefono,
+                'fecha': mesero.fecha_registro
+            })
+
+        # Agregar los datos de los jefes de cocina
+        for jefe_cocina in jefes_cocina:
+            empleados_data.append({
+                'sucursal': jefe_cocina.id_sucursal.snombre,
+                'ciudad': jefe_cocina.id_sucursal.sdireccion,
+                'nombre': jefe_cocina.nombre,
+                'apellido': jefe_cocina.apellido,
+                'telefono': jefe_cocina.telefono,
+                'fecha': jefe_cocina.fecha_registro
+            })
+
+        # Agregar los datos de los motorizados
+        for motorizado in motorizados:
+            empleados_data.append({
+                'sucursal': motorizado.id_sucursal.snombre,
+                'ciudad': motorizado.id_sucursal.sdireccion,
+                'nombre': motorizado.nombre,
+                'apellido': motorizado.apellido,
+                'telefono': motorizado.telefono,
+                'fecha': motorizado.fecha_registro
+            })
+
+        return JsonResponse({'empleados': empleados_data})
+    
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarEmpleadoView(View):
     template_name = 'editar_empleado.html'
