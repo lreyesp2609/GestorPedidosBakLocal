@@ -1049,7 +1049,7 @@ class procesar_productos(View):
             inventario_componente.cantidad_disponible -= cantidaddet * cantidad
             inventario_componente.save()
         print(f'Procesando producto con ID {producto} y cantidad {cantidad}')
- 
+@method_decorator(csrf_exempt, name='dispatch')
 class CrearEnsambleUnidadMedida(View):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
