@@ -564,6 +564,7 @@ CREATE TABLE MovimientoInventario (
     observacion VARCHAR(500),
     fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     tipoMovimiento CHAR(1) CHECK (tipoMovimiento IN ('E', 'S', 'P','R')) NOT NULL
+    SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
 );
 
 CREATE TABLE DetalleMovimientoInventario (
