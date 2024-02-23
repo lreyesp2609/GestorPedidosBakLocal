@@ -1000,12 +1000,10 @@ class procesar_productos(View):
     def procesar_producto(self, id_pro, cantidad, idbodega,idpedido):
         print('holi')
         producto = Producto.objects.get(id_producto=id_pro)
-        print('holi2')
         # Verificar si existe un ensamble para el producto
         ensambles = EnsambleProducto.objects.filter(id_producto=producto)
         bodega = Bodegas.objects.get(id_bodega=idbodega)
         if not ensambles.exists():
-            print('holi3')
             newmovimiento = MovimientoInventario.objects.create(
                 id_cuenta=Cuenta.objects.get(id_cuenta=1),
                 tipomovimiento='P',
@@ -1013,13 +1011,12 @@ class procesar_productos(View):
                 id_bodega=bodega
             )
             inventario_producto = Inventario.objects.get(id_producto=producto, id_bodega=bodega)
-            detalle= DetalleMovimientoInventario.objects.create(
+            detallem= DetalleMovimientoInventario.objects.create(
                 id_movimientoinventario=newmovimiento,
-                id_producto=producto,
-                cantidad=cantidad,
+                id_articulo=detalle.id_componentehijo,
+                cantidad=detalle.cantidadhijo,
                 tipo='S'
             )
-            print('holi4')
             inventario_producto.cantidad_disponible -= cantidad
             inventario_producto.save()
             return
