@@ -10,6 +10,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.shortcuts import get_object_or_404
 from decimal import Decimal 
 from Proveedores.models import *
+from Mesero.models import Pedidos
 from datetime import datetime, timezone
 import traceback
 import json
@@ -227,7 +228,7 @@ class CrearMovimientoReversion(View):
         try:
             with transaction.atomic():
                 movimiento_origen = get_object_or_404(MovimientoInventario, id_movimientoinventario=id_movimiento_origen)
-
+                pedido=movimiento_origen.id_pedido
                 # Crear el nuevo movimiento de tipo 'R'
                 nuevo_movimiento_reversion = MovimientoInventario.objects.create(
                     id_cuenta=movimiento_origen.id_cuenta,
@@ -266,6 +267,12 @@ class CrearMovimientoReversion(View):
                     if not created:
                         inventario.cantidad_disponible += detalle_origen.cantidad
                         inventario.save()
+                    pedido.estado_del_pedido='O'
+                    precio_str = pedido.precio
+                    precio_str_limpio = ''.join(caracter for caracter in precio_str if caracter.isdigit() or caracter == '.')
+                    precio_decimal = round(float(precio_str_limpio), 2)
+                    pedido.precio=precio_decimal
+                    pedido.save()
 
                 return JsonResponse({'mensaje': 'Nuevo movimiento de reversión creado con éxito'})
         except Exception as e:

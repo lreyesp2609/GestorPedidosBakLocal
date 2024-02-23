@@ -1011,10 +1011,10 @@ class procesar_productos(View):
                 id_bodega=bodega
             )
             inventario_producto = Inventario.objects.get(id_producto=producto, id_bodega=bodega)
-            detallem= DetalleMovimientoInventario.objects.create(
+            detalle= DetalleMovimientoInventario.objects.create(
                 id_movimientoinventario=newmovimiento,
-                id_articulo=detalle.id_componentehijo,
-                cantidad=detalle.cantidadhijo,
+                id_producto=producto,
+                cantidad=cantidad,
                 tipo='S'
             )
             inventario_producto.cantidad_disponible -= cantidad
@@ -1035,7 +1035,7 @@ class procesar_productos(View):
             print('holixd')
             print('Cantidad:')
             print(cantidad)
-            detalle= DetalleMovimientoInventario.objects.create(
+            detallem= DetalleMovimientoInventario.objects.create(
                 id_movimientoinventario=newmovimiento,
                 id_articulo=detalle.id_componentehijo,
                 cantidad=detalle.cantidadhijo,
