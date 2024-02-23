@@ -15,6 +15,8 @@ class MovimientoInventario(models.Model):
     fechahora = models.DateTimeField(default=timezone.now)
     tipomovimiento = models.CharField(max_length=1, choices=[('E', 'Entrada'), ('S', 'Salida'), ('P', 'Preparacion'), ('R', 'Reversion')])
     observacion = models.CharField(max_length=500)
+    sestado = models.CharField(max_length=1, choices=[('0','0'), ('1','1')])
+
 
     class Meta:
         managed = False
