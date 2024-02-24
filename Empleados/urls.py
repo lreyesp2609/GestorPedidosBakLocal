@@ -9,4 +9,5 @@ urlpatterns = [
     path('listar-empleados-tipo/<int:idsucursal>/<str:tipo_empleado>/', views.listar_empleados_tipo),
     path('listar-empleados-tipo/<int:idsucursal>/', views.listar_empleados_tipo),
     path('listar-empleados-tipo/', views.listar_todos_los_empleados, name='listar_todos_los_empleados'),
+    path('listar-empleados-tipo/todas/<str:tipo_empleado>/', views.listar_empleados_todas_sucursales_tipo_empleado),
 ]
