@@ -28,7 +28,6 @@ class CrearInventario(View):
                 id_proveedor = request.POST.get('id_proveedor')
                 fecha_pedido = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 fecha_entrega_esperada = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                observacion_pedido = request.POST.get('observacion_pedido')
                 proveedor_instance = get_object_or_404(Proveedores, id_proveedor=id_proveedor)
 
                 bodega_instance = get_object_or_404(Bodegas, id_bodega=id_bodega)
@@ -40,7 +39,6 @@ class CrearInventario(View):
                     fechapedido=fecha_pedido,
                     fechaentregaesperada=fecha_entrega_esperada,
                     estado='P',
-                    observacion=observacion_pedido
                 )
  #xDDD
                 # Crear el movimiento de inventario
@@ -49,7 +47,6 @@ class CrearInventario(View):
                     id_pedidoproveedor=pedido,  # Guardar la ID del pedido
                     id_bodega=bodega_instance,  # Guardar la ID de la bodega
                     tipomovimiento='E',
-                    observacion=request.POST.get('motivo'),  # Guardar el motivo
                     sestado='1'
                 )
 
@@ -185,7 +182,7 @@ class EditarInventario(View):
 class ListarMovimientosInventario(View):
     def get(self, request, *args, **kwargs):
         try:
-            movimientos = MovimientoInventario.objects.all()
+            movimientos = MovimientoInventario.objects.filter(sestado='1')  # Filtrar por sestado igual a '1'
             movimientos_data = []
 
             for movimiento in movimientos:
@@ -213,6 +210,8 @@ class ListarMovimientosInventario(View):
                     'id_cuenta': movimiento.id_cuenta.id_cuenta,
                     'fechahora': movimiento.fechahora.strftime("%Y-%m-%d %H:%M:%S"),
                     'tipo_movimiento': movimiento.tipomovimiento,
+                    'sestado': movimiento.sestado,  # Agregar el campo sestado
+                    'observacion': movimiento.observacion,
                     'detalles': detalles_data,
                 })
 
@@ -220,6 +219,7 @@ class ListarMovimientosInventario(View):
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
+
         
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearMovimientoReversion(View):
@@ -227,19 +227,25 @@ class CrearMovimientoReversion(View):
     def post(self, request, id_movimiento_origen, *args, **kwargs):
         try:
             with transaction.atomic():
+                # Obtener el movimiento de inventario original
                 movimiento_origen = get_object_or_404(MovimientoInventario, id_movimientoinventario=id_movimiento_origen)
-                pedido = movimiento_origen.id_pedido
+                
+                # Obtener la observación de la reversión del cuerpo de la solicitud
+                data = json.loads(request.body)
+                observacion_reversion = data.get('observacion_reversion')  # Esto asume que 'observacion_reversion' está presente en los datos JSON
+                
+                if observacion_reversion is None:
+                    return JsonResponse({'error': 'La observación de reversión es obligatoria'}, status=400)
+                
                 # Crear el nuevo movimiento de tipo 'R'
                 nuevo_movimiento_reversion = MovimientoInventario.objects.create(
-                id_cuenta=movimiento_origen.id_cuenta,
-                id_pedido=movimiento_origen.id_pedido,
-                id_bodega=movimiento_origen.id_bodega,
-                tipomovimiento='R',
-                observacion=request.POST.get('observacion'),
-                sestado='1'  # Establecer el sestado como '1'
-)
-
-                
+                    id_cuenta=movimiento_origen.id_cuenta,
+                    id_pedido=movimiento_origen.id_pedido,
+                    id_bodega=movimiento_origen.id_bodega,
+                    tipomovimiento='R',
+                    sestado='1',  # Establecer el sestado como '1'
+                    observacion=observacion_reversion  # Guardar la observación de la reversión
+                )
 
                 # Modificar el sestado del movimiento original a '0'
                 movimiento_origen.sestado = '0'
@@ -257,12 +263,8 @@ class CrearMovimientoReversion(View):
                     )
 
                     # Actualizar el inventario
-                    if detalle_origen.id_producto:
-                        producto_instance = detalle_origen.id_producto
-                        componente_instance = None
-                    elif detalle_origen.id_articulo:
-                        producto_instance = None
-                        componente_instance = detalle_origen.id_articulo
+                    producto_instance = detalle_origen.id_producto
+                    componente_instance = detalle_origen.id_articulo
 
                     inventario, created = Inventario.objects.get_or_create(
                         id_bodega=movimiento_origen.id_bodega,
@@ -274,14 +276,23 @@ class CrearMovimientoReversion(View):
                     if not created:
                         inventario.cantidad_disponible += detalle_origen.cantidad
                         inventario.save()
-                    pedido.estado_del_pedido = 'O'
-                    precio_str = str(pedido.precio)
-                    precio_str_limpio = ''.join(caracter for caracter in precio_str if caracter.isdigit() or caracter == '.') 
-                    precio_decimal = round(float(precio_str_limpio), 2)
-                    pedido.precio = precio_decimal
-                    pedido.save()
+
+                # Actualizar estado del pedido
+                pedido = movimiento_origen.id_pedido
+                pedido.estado_del_pedido = 'O'
+                # Ajuste del precio del pedido
+                precio_str = str(pedido.precio)
+                precio_str_limpio = ''.join(caracter for caracter in precio_str if caracter.isdigit() or caracter == '.') 
+                precio_decimal = round(float(precio_str_limpio), 2)
+                pedido.precio = precio_decimal
+                pedido.save()
 
                 return JsonResponse({'mensaje': 'Nuevo movimiento de reversión creado con éxito'})
+        except MovimientoInventario.DoesNotExist:
+            return JsonResponse({'error': 'El movimiento de inventario original no existe'}, status=404)
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
+
+
+

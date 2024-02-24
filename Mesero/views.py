@@ -11,6 +11,7 @@ from datetime import datetime
 from Mesero.models import *
 from decimal import Decimal
 from Mesa.models import Mesas
+from Inventario.models import MovimientoInventario
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidos(View):
@@ -60,26 +61,35 @@ class ListaPedidos(View):
             return JsonResponse({'pedidos': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
 @method_decorator(csrf_exempt, name='dispatch')
 class ConfirmarPedido(View):
     def post(self, request, *args, **kwargs):
         try:
             with transaction.atomic():
                 id_pedido = request.POST.get('id_pedido')
-                pedido= Pedidos.objects.get(id_pedido=id_pedido)
+                pedido = Pedidos.objects.get(id_pedido=id_pedido)
                 precio = "703,00 €"
                 precio = precio.replace(",", "").replace("€", "").strip()
 
                 # Reemplaza la coma con un punto si es necesario
                 precio = precio.replace(",", ".")
 
-                pedido.precio=Decimal(precio)
-                pedido.estado_del_pedido='E'
+                pedido.precio = Decimal(precio)
+                pedido.estado_del_pedido = 'E'
                 pedido.save()
+
+                # Cambiar el estado del movimiento de inventario asociado a este pedido a 0
+                movimiento_inventario = MovimientoInventario.objects.filter(id_pedido=id_pedido).first()
+                if movimiento_inventario:
+                    movimiento_inventario.sestado = '0'
+                    movimiento_inventario.save()
+
                 return JsonResponse({'mensaje': 'Pedido confirmado'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
+        
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidosMesero(View):
     def get(self, request, *args, **kwargs):
