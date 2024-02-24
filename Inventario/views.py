@@ -180,12 +180,11 @@ class EditarInventario(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 
-
 @method_decorator(csrf_exempt, name='dispatch')
 class ListarMovimientosInventario(View):
     def get(self, request, *args, **kwargs):
         try:
-            movimientos = MovimientoInventario.objects.all()
+            movimientos = MovimientoInventario.objects.filter(sestado='1')  # Filtrar por sestado igual a '1'
             movimientos_data = []
 
             for movimiento in movimientos:
@@ -213,6 +212,8 @@ class ListarMovimientosInventario(View):
                     'id_cuenta': movimiento.id_cuenta.id_cuenta,
                     'fechahora': movimiento.fechahora.strftime("%Y-%m-%d %H:%M:%S"),
                     'tipo_movimiento': movimiento.tipomovimiento,
+                    'sestado': movimiento.sestado,  # Agregar el campo sestado
+                    'observacion': movimiento.observacion,
                     'detalles': detalles_data,
                 })
 
@@ -275,9 +276,11 @@ class CrearMovimientoReversion(View):
                         inventario.cantidad_disponible += detalle_origen.cantidad
                         inventario.save()
                     pedido.estado_del_pedido = 'O'
-                    precio_str = str(pedido.precio)
-                    precio_str_limpio = ''.join(caracter for caracter in precio_str if caracter.isdigit() or caracter == '.') 
-                    precio_decimal = round(float(precio_str_limpio), 2)
+                    precio_str = str(pedido.precio).replace('€','')
+                    print(pedido.precio)
+                    print(precio_str)
+                    print(float(precio_str.replace(',', '.', 1)))
+                    precio_decimal = float(precio_str.replace(',', '.', 1)  )
                     pedido.precio = precio_decimal
                     pedido.save()
 

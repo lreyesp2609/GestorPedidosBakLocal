@@ -985,10 +985,12 @@ class procesar_productos(View):
                         cantidad = int(producto['cantidad'])
                         self.procesar_producto(id_producto, cantidad, id_bodega,pedido)
                 pedido.estado_del_pedido='P'
-                precio_str = pedido.precio
-                precio_str_limpio = ''.join(caracter for caracter in precio_str if caracter.isdigit() or caracter == '.')
-                precio_decimal = round(float(precio_str_limpio), 2)
-                pedido.precio=precio_decimal
+                precio_str = str(pedido.precio).replace('€','')
+                print(pedido.precio)
+                print(precio_str)
+                print(float(precio_str.replace(',', '.', 1)))
+                precio_decimal = float(precio_str.replace(',', '.', 1)  )
+                pedido.precio = precio_decimal
                 pedido.save()
                 response_data = {'status': 'success', 'message': 'Productos procesados correctamente.'}
 
