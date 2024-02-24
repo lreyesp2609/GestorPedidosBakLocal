@@ -79,16 +79,17 @@ class ConfirmarPedido(View):
                 pedido.estado_del_pedido = 'E'
                 pedido.save()
 
-                # Cambiar el estado del movimiento de inventario asociado a este pedido a 0
-                movimiento_inventario = MovimientoInventario.objects.filter(id_pedido=id_pedido).first()
-                if movimiento_inventario:
-                    movimiento_inventario.sestado = '0'
-                    movimiento_inventario.save()
+                # Cambiar el estado de los movimientos relacionados con este pedido a 0 si son de tipo 'P'
+                movimientos_relacionados = MovimientoInventario.objects.filter(id_pedido=id_pedido, tipomovimiento='P', sestado='1')
+                for movimiento_relacionado in movimientos_relacionados:
+                    movimiento_relacionado.sestado = '0'
+                    movimiento_relacionado.save()
 
                 return JsonResponse({'mensaje': 'Pedido confirmado'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
+
         
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidosMesero(View):
