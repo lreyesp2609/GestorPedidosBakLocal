@@ -1,5 +1,6 @@
 # views.py
 from gettext import translation
+import json
 import traceback
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404
@@ -145,3 +146,20 @@ def crear_punto_facturacion(request, id_cuenta):
     else:
         # Si la solicitud no es POST, retornar un error
         return JsonResponse({'error': 'Se esperaba una solicitud POST'}, status=400)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ValidarPuntoFacturacion(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            id_mesero = data.get('id_mesero')
+
+            # Verificar si ya existe un punto de facturación asociado al mesero
+            if Puntofacturacion.objects.filter(id_mesero=id_mesero).exists():
+                return JsonResponse({'mensaje': 'Ya existe un punto de facturación asociado a este mesero'}, status=400)
+
+            # Si no existe, se puede proceder a crear uno nuevo
+            return JsonResponse({'mensaje': 'No existe un punto de facturación asociado a este mesero'})
+        except Exception as e:
+            return JsonResponse({'errorxd': str(e)}, status=400)
