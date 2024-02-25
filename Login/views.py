@@ -19,7 +19,7 @@ from rest_framework.authtoken.models import Token
 import jwt
 from django.conf import settings
 from django.shortcuts import get_object_or_404
-
+import traceback
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearUsuarioView(View):
@@ -379,13 +379,47 @@ class EditarUsuariosView(View):
             cliente.ctelefono= request.POST.get('ctelefono')
             cliente.ruc_cedula= request.POST.get('ruc_cedula')
             cliente.crazon_social= request.POST.get('crazon_social')
-
+            ubicacion1=request.POST.get('latitud1')
+            ubicacion2=request.POST.get('latitud2')
+            ubicacion3=request.POST.get('latitud3')
+            if ubicacion1:
+                if cliente.id_ubicacion1:
+                    if request.POST.get('latitud1')!=0 and request.POST.get('longitud1')!=0: 
+                        cliente.id_ubicacion1.latitud= request.POST.get('latitud1')
+                        cliente.id_ubicacion1.longitud = request.POST.get('longitud1'),
+                else:
+                    cliente.id_ubicacion1= Ubicaciones.objects.create(
+                        latitud = request.POST.get('latitud1'),
+                        longitud = request.POST.get('longitud1'),
+                        sestado = 1
+                    )
+            if ubicacion2:
+                if cliente.id_ubicacion2:
+                    if request.POST.get('latitud2')!="" and request.POST.get('longitud2')!="": 
+                        cliente.id_ubicacion2.latitud= request.POST.get('latitud2')
+                        cliente.id_ubicacion2.longitud = request.POST.get('longitud2'),
+                else:
+                    cliente.id_ubicacion2= Ubicaciones.objects.create(
+                        latitud = request.POST.get('latitud2'),
+                        longitud = request.POST.get('longitud2'),
+                        sestado = 1
+                    )
+            if ubicacion3:
+                if cliente.id_ubicacion3:
+                    if request.POST.get('latitud3')!=0 and request.POST.get('longitud3')!=0: 
+                        cliente.id_ubicacion3.latitud= request.POST.get('latitud3')
+                        cliente.id_ubicacion3.longitud = request.POST.get('longitud3'),
+                else:
+                    cliente.id_ubicacion3= Ubicaciones.objects.create(
+                        latitud = request.POST.get('latitud3'),
+                        longitud = request.POST.get('longitud3'),
+                        sestado = 1
+                    )
             cliente.save()
-
-
             return JsonResponse({'mesnaje':'usuario editado con exito'})
         except Clientes.DoesNotExist:
             return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
         except Exception as e:
+            traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400) 
