@@ -10,4 +10,5 @@ urlpatterns = [
     path('pedidoslocal/<int:id_cuenta>/', TomarPedidoSinMesa.as_view(), name='tomar_pedido_2'),
     path('listpedidos/', ListaPedidosMesero.as_view(), name='ListaPedidosMesero'),
     path('confirmarpedido/', ConfirmarPedido.as_view(), name='ConfirmarPedido'),
+    path('listar_meseros/', ListaMeseros.as_view(), name='listar_meseros'),
 ]

@@ -126,7 +126,7 @@ def listar_empleados_tipo(request, idsucursal=None, tipo_empleado=None):
             else:
                 return JsonResponse({'error': 'Tipo de empleado no válido'}, status=400)
 
-            empleados_data = [{'nombre': empleado.nombre, 'apellido': empleado.apellido, 'telefono': empleado.telefono,  'fecha': empleado.fecha_registro} for empleado in empleados]
+            empleados_data = [{'nombre': empleado.nombre, 'apellido': empleado.apellido, 'telefono': empleado.telefono, 'ciudad': empleado.id_sucursal.sdireccion,  'fecha': empleado.fecha_registro} for empleado in empleados]
 
             if not empleados_data:
                 return JsonResponse({'mensaje': 'No hay empleados de tipo {} en la sucursal {}'.format(tipo_empleado, idsucursal)})
@@ -138,7 +138,7 @@ def listar_empleados_tipo(request, idsucursal=None, tipo_empleado=None):
             meseros = Mesero.objects.filter(id_sucursal=idsucursal)
             
             empleados = list(jefes_cocina) + list(motorizados) + list(meseros)        
-            empleados_data = [{'nombre': empleado.nombre, 'apellido': empleado.apellido, 'telefono': empleado.telefono, 'fecha': empleado.fecha_registro} for empleado in empleados]
+            empleados_data = [{'nombre': empleado.nombre, 'apellido': empleado.apellido, 'telefono': empleado.telefono, 'ciudad': empleado.id_sucursal.sdireccion, 'fecha': empleado.fecha_registro} for empleado in empleados]
 
             if not empleados_data:
                 return JsonResponse({'mensaje': 'No hay empleados en la sucursal {}'.format(idsucursal)})
@@ -147,7 +147,6 @@ def listar_empleados_tipo(request, idsucursal=None, tipo_empleado=None):
     
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
-
 
 def listar_todos_los_empleados(request):
     try:
@@ -194,6 +193,38 @@ def listar_todos_los_empleados(request):
 
         return JsonResponse({'empleados': empleados_data})
     
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=400)
+    
+def listar_empleados_todas_sucursales_tipo_empleado(request, tipo_empleado):
+    try:
+        # Filtrar empleados por tipo de empleado en todas las sucursales
+        if tipo_empleado == 'motorizados':
+            empleados = Motorizado.objects.all()
+        elif tipo_empleado == 'meseros':
+            empleados = Mesero.objects.all()
+        elif tipo_empleado == 'jefe_cocina':
+            empleados = JefeCocina.objects.all()
+        else:
+            return JsonResponse({'error': 'Tipo de empleado no válido'}, status=400)
+
+        # Crear una lista para almacenar los datos de todos los empleados
+        empleados_data = []
+
+        # Agregar los datos de los empleados a la lista
+        for empleado in empleados:
+            empleados_data.append({
+                'sucursal': empleado.id_sucursal.snombre,
+                'ciudad': empleado.id_sucursal.sdireccion,
+                'nombre': empleado.nombre,
+                'apellido': empleado.apellido,
+                'telefono': empleado.telefono,
+                'ciudad': empleado.id_sucursal.sdireccion,
+                'fecha': empleado.fecha_registro
+            })
+
+        return JsonResponse({'empleados': empleados_data})
+
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
 

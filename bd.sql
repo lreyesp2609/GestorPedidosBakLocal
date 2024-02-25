@@ -563,7 +563,7 @@ CREATE TABLE MovimientoInventario (
     id_bodega INTEGER REFERENCES Bodegas(id_Bodega),
     observacion VARCHAR(500),
     fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    tipoMovimiento CHAR(1) CHECK (tipoMovimiento IN ('E', 'S', 'P','R')) NOT NULL
+    tipoMovimiento CHAR(1) CHECK (tipoMovimiento IN ('E', 'S', 'P','R')) NOT NULL,
     SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
 );
 
@@ -627,4 +627,13 @@ CREATE TABLE Codigosri (
     rango_desde VARCHAR(9),
     rango_hasta VARCHAR(9),
     UNIQUE (numero_factura_desde, numero_factura_hasta)
+);
+
+CREATE TABLE PuntoFacturacion (
+    id_PuntoFacturacion SERIAL PRIMARY KEY,
+    NombrePunto VARCHAR(100) NOT NULL,
+    id_Mesero INTEGER REFERENCES Meseros(id_Mesero),
+	id_administrador INTEGER REFERENCES administrador(id_administrador),
+    Codigo VARCHAR(3) NOT NULL,
+	SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
 );
