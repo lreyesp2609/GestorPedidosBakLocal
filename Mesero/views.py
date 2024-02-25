@@ -590,3 +590,35 @@ class ListaMeseros(View):
             return JsonResponse({'meseros': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaFacturas(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén la lista de facturas
+            facturas = Factura.objects.all()
+
+            # Formatea los datos
+            data = []
+            for factura in facturas:
+                factura_data = {
+                    'id_factura': factura.id_factura,
+                    'id_pedido': factura.id_pedido.id_pedido if factura.id_pedido else None,
+                    'id_cliente': factura.id_cliente.id_cliente if factura.id_cliente else None,
+                    'id_mesero': factura.id_mesero.id_mesero if factura.id_mesero else None,
+                    'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S') if factura.fecha_emision else None,
+                    'total': str(factura.total),
+                    'iva': str(factura.iva) if factura.iva else None,
+                    'descuento': str(factura.descuento) if factura.descuento else None,
+                    'subtotal': str(factura.subtotal) if factura.subtotal else None,
+                    'a_pagar': str(factura.a_pagar) if factura.a_pagar else None,
+                    'codigo_factura': factura.codigo_factura,
+                    'codigo_autorizacion': factura.codigo_autorizacion,
+                    'numero_factura_desde': factura.numero_factura_desde,
+                    'numero_factura_hasta': factura.numero_factura_hasta,
+                }
+                data.append(factura_data)
+
+            return JsonResponse({'facturas': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

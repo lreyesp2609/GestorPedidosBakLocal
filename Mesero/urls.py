@@ -11,4 +11,6 @@ urlpatterns = [
     path('listpedidos/', ListaPedidosMesero.as_view(), name='ListaPedidosMesero'),
     path('confirmarpedido/', ConfirmarPedido.as_view(), name='ConfirmarPedido'),
     path('listar_meseros/', ListaMeseros.as_view(), name='listar_meseros'),
+    path('lista_facturas/', ListaFacturas.as_view(), name='lista_facturas'),
+
 ]
