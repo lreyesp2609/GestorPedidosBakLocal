@@ -259,7 +259,13 @@ class TomarPedido(View):
                 nuevo_pedido.save()
 
                 # Crear la factura asociada al pedido
-                numero_factura, numero_factura_desde, numero_factura_hasta = Codigosri.obtener_proximo_numero_factura(id_mesero, id_sucursal)
+                try:
+                    numero_factura, numero_factura_desde, numero_factura_hasta = Codigosri.obtener_proximo_numero_factura(id_mesero, id_sucursal)
+                except ValueError as e:
+                    numero_factura = None  # No se pudo obtener el número de factura
+                    numero_factura_desde = None
+                    numero_factura_hasta = None
+
                 nueva_factura = Factura.objects.create(
                     id_pedido=nuevo_pedido,
                     id_cliente=cliente_instance,
@@ -275,8 +281,6 @@ class TomarPedido(View):
                     numero_factura_desde=numero_factura_desde,  # Asigna el valor devuelto por el método
                     numero_factura_hasta=numero_factura_hasta,  # Asigna el valor devuelto por el método
                 )
-
-
 
                 # Crear los detalles de la factura
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
@@ -309,6 +313,8 @@ class TomarPedido(View):
                         )
 
                 return JsonResponse({'mensaje': 'Pedido y factura creados con éxito'})
+        except ObjectDoesNotExist:
+            return JsonResponse({'error': 'No se encontró ningún registro en Codigosri'}, status=400)
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
@@ -558,3 +564,29 @@ class ObtenerMeseroView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaMeseros(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén la lista de meseros
+            meseros = Meseros.objects.all()
+
+            # Formatea los datos
+            data = []
+            for mesero in meseros:
+                mesero_data = {
+                    'id_mesero': mesero.id_mesero,
+                    'id_sucursal': mesero.id_sucursal.id_sucursal,
+                    'id_administrador': mesero.id_administrador.id_administrador,
+                    'nombre': mesero.nombre,
+                    'apellido': mesero.apellido,
+                    'telefono': mesero.telefono,
+                    'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
+                    'sestado': mesero.sestado,
+                }
+                data.append(mesero_data)
+
+            return JsonResponse({'meseros': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

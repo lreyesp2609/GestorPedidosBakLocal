@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from Administrador.models import *
-# Create your models here.
+
 
 class Codigosri(models.Model):
     id_codigosri = models.AutoField(primary_key=True)
@@ -18,24 +18,30 @@ class Codigosri(models.Model):
         unique_together = (('rango_desde', 'rango_hasta'),)
 
     @classmethod
-    def obtener_proximo_numero_factura(cls, id_mesero, id_sucursal):
+    def obtener_proximo_numero_factura(cls, id_punto_facturacion, id_sucursal):
         try:
-            codigosri = cls.objects.get()  # Suponiendo que solo hay un registro en Codigosri
+            punto_facturacion = Puntofacturacion.objects.get(id_puntofacturacion=id_punto_facturacion)
+            if punto_facturacion:
+                if punto_facturacion.id_administrador:
+                    codigosri_instance = cls.objects.get()  # Guarda la instancia de Codigosri
+                    numero_actual = int(codigosri_instance.rango_desde)
+                    numero_hasta = int(codigosri_instance.rango_hasta)
+                    codigo_punto_facturacion = punto_facturacion.codigo.zfill(3)
 
-            numero_actual = int(codigosri.rango_desde)
-            numero_hasta = int(codigosri.rango_hasta)
-
-            codigo_establecimiento = str(id_sucursal).zfill(3)
-
-            if numero_actual <= numero_hasta:
-                numero_formateado = f"{codigo_establecimiento}{str(id_mesero).zfill(3)}{str(numero_actual).zfill(9)}"
-                codigosri.rango_desde = str(numero_actual + 1).zfill(9)
-                codigosri.save()
-                return numero_formateado, codigosri.numero_factura_desde, codigosri.numero_factura_hasta
+                    if numero_actual <= numero_hasta:
+                        numero_formateado = f"{codigo_punto_facturacion}{str(numero_actual).zfill(9)}"
+                        codigosri_instance.rango_desde = str(numero_actual + 1).zfill(9)
+                        codigosri_instance.save()  # Guarda la instancia actualizada
+                        return numero_formateado, codigosri_instance.numero_factura_desde, codigosri_instance.numero_factura_hasta
+                    else:
+                        raise ValueError("No hay más números de factura disponibles")
+                else:
+                    raise ValueError("El id_administrador asociado a punto_facturacion es None")
             else:
-                raise ValueError("No hay más números de factura disponibles")
+                raise ValueError("El punto de facturación es None")
         except ObjectDoesNotExist:
             raise ValueError("No se encontró ningún registro en Codigosri")
+
 
         
 class Codigoautorizacion(models.Model):
@@ -60,3 +66,15 @@ class Codigoautorizacion(models.Model):
                 return None
         except ObjectDoesNotExist:
             return None
+        
+class Puntofacturacion(models.Model):
+    id_puntofacturacion = models.AutoField(primary_key=True)
+    nombrepunto = models.CharField(max_length=100)
+    id_mesero = models.ForeignKey('Mesero.Meseros', models.DO_NOTHING, db_column='id_mesero', blank=True, null=True)
+    codigo = models.CharField(max_length=3)
+    id_administrador = models.ForeignKey(Administrador, models.DO_NOTHING, db_column='id_administrador', blank=True, null=True)
+    sestado = models.CharField(max_length=1)
+
+    class Meta:
+        managed = False
+        db_table = 'puntofacturacion'

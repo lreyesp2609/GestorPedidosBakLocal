@@ -1,6 +1,12 @@
 # views.py
+from gettext import translation
+import traceback
 from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views import View
 from django.views.decorators.csrf import csrf_exempt
+from django.db import transaction
+from Mesero.models import Factura
 from .models import *
 from django.utils.decorators import method_decorator
 import re
@@ -70,6 +76,72 @@ def crear_codigoautorizacion(request, id_cuenta):
 
         # Retornar una respuesta JSON
         return JsonResponse({'mensaje': 'Codigoautorizacion creado exitosamente'})
+    else:
+        # Si la solicitud no es POST, retornar un error
+        return JsonResponse({'error': 'Se esperaba una solicitud POST'}, status=400)
+    
+@method_decorator(csrf_exempt, name='dispatch')
+class ValidarFactura(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():  # Corregir aquí
+                # Obtener el id del punto de facturación del mesero desde los argumentos de la URL
+                id_mesero = kwargs.get('id_mesero')
+
+                # Verificar si existe un punto de facturación asociado al mesero
+                punto_facturacion = get_object_or_404(Puntofacturacion, id_mesero=id_mesero)
+
+                # Obtener los valores necesarios para la factura utilizando obtener_proximo_numero_factura
+                codigo_factura, numero_factura_desde, numero_factura_hasta = Codigosri.obtener_proximo_numero_factura(
+                    punto_facturacion.id_puntofacturacion, punto_facturacion.id_administrador.id_sucursal)
+
+                # Actualizar la factura con los valores obtenidos
+                factura_id = kwargs.get('id_factura')  # Obtener el ID de la factura de los argumentos de la URL
+                factura = get_object_or_404(Factura, id_factura=factura_id)
+
+                factura.codigo_factura = codigo_factura
+                factura.numero_factura_desde = numero_factura_desde
+                factura.numero_factura_hasta = numero_factura_hasta
+
+                factura.save()
+
+                # Devolver una respuesta indicando que la factura se ha validado correctamente
+                return JsonResponse({'mensaje': 'Factura validada con éxito'})
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=400)
+        
+@csrf_exempt
+def crear_punto_facturacion(request, id_cuenta):
+    if request.method == 'POST':
+        id_administrador = Administrador.objects.get(id_cuenta=id_cuenta)
+
+        # Recuperar los datos del formulario POST
+        nombre_punto = request.POST.get('nombre_punto')
+        id_mesero_id = request.POST.get('id_mesero')  # Asumiendo que este es el ID del mesero
+        sestado = request.POST.get('sestado')
+
+        # Obtener el último código de punto de venta registrado
+        ultimo_codigo_punto_venta = Puntofacturacion.objects.order_by('-codigo').first()
+
+        if ultimo_codigo_punto_venta:
+            ultimo_codigo = int(ultimo_codigo_punto_venta.codigo)
+            nuevo_codigo = str(ultimo_codigo + 1).zfill(3)  # Incrementar en 1 y formatear a 3 dígitos
+        else:
+            nuevo_codigo = '001'  # Si no hay ningún punto de venta registrado, empezar desde '001'
+
+        # Crear un nuevo registro en Puntofacturacion
+        nuevo_punto_venta = Puntofacturacion.objects.create(
+            id_administrador=id_administrador,
+            nombrepunto=nombre_punto,
+            codigo=nuevo_codigo,
+            id_mesero_id=id_mesero_id,
+            sestado=sestado
+            # Otras columnas que puedas tener en tu modelo
+        )
+
+        # Retornar una respuesta JSON
+        return JsonResponse({'mensaje': 'Punto de facturación creado exitosamente', 'codigo_generado': nuevo_codigo})
     else:
         # Si la solicitud no es POST, retornar un error
         return JsonResponse({'error': 'Se esperaba una solicitud POST'}, status=400)

@@ -628,3 +628,12 @@ CREATE TABLE Codigosri (
     rango_hasta VARCHAR(9),
     UNIQUE (numero_factura_desde, numero_factura_hasta)
 );
+
+CREATE TABLE PuntoFacturacion (
+    id_PuntoFacturacion SERIAL PRIMARY KEY,
+    NombrePunto VARCHAR(100) NOT NULL,
+    id_Mesero INTEGER REFERENCES Meseros(id_Mesero),
+	id_administrador INTEGER REFERENCES administrador(id_administrador),
+    Codigo VARCHAR(3) NOT NULL,
+	SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
+);
