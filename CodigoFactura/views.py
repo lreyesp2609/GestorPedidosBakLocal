@@ -7,7 +7,7 @@ from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
-from Mesero.models import Factura
+from Mesero.models import Factura, Meseros
 from .models import *
 from django.utils.decorators import method_decorator
 import re
@@ -87,7 +87,9 @@ class ValidarFactura(View):
         try:
             with transaction.atomic():  # Corregir aquí
                 # Obtener el id del punto de facturación del mesero desde los argumentos de la URL
-                id_mesero = kwargs.get('id_mesero')
+                id_usuario = kwargs.get('id_cuenta')
+                mesero = Meseros.objects.get(id_cuenta=id_usuario)
+                id_mesero = mesero.id_mesero
 
                 # Verificar si existe un punto de facturación asociado al mesero
                 punto_facturacion = get_object_or_404(Puntofacturacion, id_mesero=id_mesero)
@@ -162,4 +164,27 @@ class ValidarPuntoFacturacion(View):
             # Si no existe, se puede proceder a crear uno nuevo
             return JsonResponse({'mensaje': 'No existe un punto de facturación asociado a este mesero'})
         except Exception as e:
-            return JsonResponse({'errorxd': str(e)}, status=400)
+            return JsonResponse({'error': str(e)}, status=400)
+        
+def validar_permisos(id_usuario):
+    try:
+        mesero = Meseros.objects.get(id_cuenta=id_usuario)
+        # Verificar si el mesero está asociado a algún punto de facturación
+        if Puntofacturacion.objects.filter(id_mesero=mesero).exists():
+            return True  # Si está asociado a algún punto de facturación, tiene permiso
+        else:
+            return False  # Si no está asociado a ningún punto de facturación, no tiene permiso
+    except Meseros.DoesNotExist:
+        return False  # Si no se encuentra el mesero, no tiene permiso
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ValidarPermisosFactura(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            id_usuario = kwargs.get('id_cuenta')
+            if validar_permisos(id_usuario):
+                return JsonResponse({'mensaje': 'Tiene permiso para validar facturas'})
+            else:
+                return JsonResponse({'error': 'Acceso bloqueado: No tiene permiso para validar facturas'}, status=403)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
