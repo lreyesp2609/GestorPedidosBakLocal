@@ -540,6 +540,7 @@ CREATE TABLE Factura (
     codigo_autorizacion VARCHAR(49),
     numero_factura_desde VARCHAR(9),
     numero_factura_hasta VARCHAR(9)
+    estado VARCHAR(1) CHECK (estado IN ('P', 'V', 'R'));
 );
 
 
