@@ -537,7 +537,7 @@ CREATE TABLE Factura (
     subtotal NUMERIC(10, 2),
     a_pagar NUMERIC(10, 2),
     codigo_factura VARCHAR(15),
-    codigo_autorizacion VARCHAR(10),
+    codigo_autorizacion VARCHAR(49),
     numero_factura_desde VARCHAR(9),
     numero_factura_hasta VARCHAR(9)
 );
@@ -614,7 +614,7 @@ CREATE TABLE Pagos (
 CREATE TABLE Codigoautorizacion (
     id_codigosauto SERIAL PRIMARY KEY,
     id_administrador INTEGER REFERENCES Administrador(id_administrador),
-    codigo_autorizacion VARCHAR(10),
+    codigo_autorizacion VARCHAR(49),
     fecha_vencimiento DATE,
     fecha_autorizacion DATE
 );

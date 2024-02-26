@@ -47,7 +47,7 @@ class Codigosri(models.Model):
 class Codigoautorizacion(models.Model):
     id_codigosauto = models.AutoField(primary_key=True)
     id_administrador = models.ForeignKey(Administrador, models.DO_NOTHING, db_column='id_administrador', blank=True, null=True)
-    codigo_autorizacion = models.CharField(max_length=10)
+    codigo_autorizacion = models.CharField(max_length=49)
     fecha_vencimiento = models.DateField(blank=True, null=True)
     fecha_autorizacion = models.DateField(blank=True, null=True)
 
