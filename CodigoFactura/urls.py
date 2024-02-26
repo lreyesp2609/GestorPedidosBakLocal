@@ -11,3 +11,4 @@ urlpatterns = [
     path('validar_permisos_factura/<int:id_cuenta>/', ValidarPermisosFactura.as_view(), name='validar_permisos_factura'),
     # Otras URLs de tu aplicación
 ]
+

@@ -122,3 +122,4 @@ class DetalleFactura(models.Model):
     class Meta:
         managed = False
         db_table = 'detallefactura'
+        

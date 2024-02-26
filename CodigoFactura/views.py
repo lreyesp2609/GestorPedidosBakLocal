@@ -188,3 +188,4 @@ class ValidarPermisosFactura(View):
                 return JsonResponse({'error': 'Acceso bloqueado: No tiene permiso para validar facturas'}, status=403)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+

@@ -14,3 +14,4 @@ urlpatterns = [
     path('lista_facturas/', ListaFacturas.as_view(), name='lista_facturas'),
 
 ]
+
