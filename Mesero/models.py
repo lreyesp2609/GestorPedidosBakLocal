@@ -98,7 +98,7 @@ class Factura(models.Model):
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     a_pagar = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     codigo_factura = models.CharField(max_length=15, blank=True, null=True)
-    codigo_autorizacion = models.CharField(max_length=10, blank=True, null=True)
+    codigo_autorizacion = models.CharField(max_length=49, blank=True, null=True)
     numero_factura_desde = models.CharField(max_length=9)
     numero_factura_hasta = models.CharField(max_length=9)
     
