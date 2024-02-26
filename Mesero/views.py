@@ -258,14 +258,6 @@ class TomarPedido(View):
                 nuevo_pedido.precio = a_pagar
                 nuevo_pedido.save()
 
-                # Crear la factura asociada al pedido
-                try:
-                    numero_factura, numero_factura_desde, numero_factura_hasta = Codigosri.obtener_proximo_numero_factura(id_mesero, id_sucursal)
-                except ValueError as e:
-                    numero_factura = None  # No se pudo obtener el número de factura
-                    numero_factura_desde = None
-                    numero_factura_hasta = None
-
                 nueva_factura = Factura.objects.create(
                     id_pedido=nuevo_pedido,
                     id_cliente=cliente_instance,
@@ -275,13 +267,9 @@ class TomarPedido(View):
                     descuento=total_descuento,
                     subtotal=subtotal,
                     a_pagar=a_pagar,
-                    codigo_factura=numero_factura,
                     codigo_autorizacion=Codigoautorizacion.obtener_codigo_autorizacion_valido(),
                     fecha_emision=datetime.now(),
-                    numero_factura_desde=numero_factura_desde,  # Asigna el valor devuelto por el método
-                    numero_factura_hasta=numero_factura_hasta,  # Asigna el valor devuelto por el método
                 )
-
                 # Crear los detalles de la factura
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                     id_producto_id = detalle_pedido_data.get('id_producto')

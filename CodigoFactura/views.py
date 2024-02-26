@@ -40,8 +40,8 @@ def crear_codigosri(request, id_cuenta):
             # Si no existe, crear un nuevo registro en Codigosri
             Codigosri.objects.create(
                 id_administrador=id_administrador,
-                rango_desde=numero_factura_desde,
-                rango_hasta=numero_factura_hasta,
+                rango_desde=numero_factura_desde,  # Aseguramos que rango_desde sea igual a numero_factura_desde
+                rango_hasta=numero_factura_hasta,  # Aseguramos que rango_hasta sea igual a numero_factura_hasta
                 numero_factura_desde=numero_factura_desde,
                 numero_factura_hasta=numero_factura_hasta,
             )
@@ -51,6 +51,7 @@ def crear_codigosri(request, id_cuenta):
     else:
         # Si la solicitud no es POST, retornar un error
         return JsonResponse({'error': 'Se esperaba una solicitud POST'}, status=400)
+
 
     
 @csrf_exempt
