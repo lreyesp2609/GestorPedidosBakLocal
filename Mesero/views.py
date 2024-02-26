@@ -622,6 +622,3 @@ class ListaFacturas(View):
             return JsonResponse({'facturas': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-        
-
-        
