@@ -637,3 +637,4 @@ CREATE TABLE PuntoFacturacion (
     Codigo VARCHAR(3) NOT NULL,
 	SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
 );
+
