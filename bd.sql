@@ -539,7 +539,8 @@ CREATE TABLE Factura (
     codigo_factura VARCHAR(15),
     codigo_autorizacion VARCHAR(49),
     numero_factura_desde VARCHAR(9),
-    numero_factura_hasta VARCHAR(9)
+    numero_factura_hasta VARCHAR(9),
+    estado VARCHAR(1) CHECK (estado IN ('P', 'V', 'R'))
 );
 
 
@@ -553,6 +554,16 @@ CREATE TABLE DetalleFactura (
 	id_producto INTEGER REFERENCES Producto(id_producto),
 	id_combo INTEGER REFERENCES Combo(id_combo),
 	id_promocion INTEGER REFERENCES Promociones(id_promocion)
+);
+
+
+CREATE TABLE NotaCredito (
+    id_NotaCredito SERIAL PRIMARY KEY,
+    id_Factura INTEGER REFERENCES Factura(id_factura) NOT NULL,
+    id_Cliente INTEGER REFERENCES Clientes(id_Cliente) NOT NULL,
+    FechaEmision TIMESTAMP NOT NULL,
+    Motivo VARCHAR(500),
+    Estado CHAR(1) CHECK (Estado IN ('A', 'C')) NOT NULL,
 );
 
 CREATE TABLE MovimientoInventario (

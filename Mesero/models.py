@@ -101,11 +101,11 @@ class Factura(models.Model):
     codigo_autorizacion = models.CharField(max_length=49, blank=True, null=True)
     numero_factura_desde = models.CharField(max_length=9)
     numero_factura_hasta = models.CharField(max_length=9)
+    estado = models.CharField(max_length=1, choices=[('P', 'P'), ('V', 'V'), ('R', 'R')])
     
     class Meta:
         managed = False
         db_table = 'factura'
-
 
 
 class DetalleFactura(models.Model):
@@ -122,3 +122,15 @@ class DetalleFactura(models.Model):
     class Meta:
         managed = False
         db_table = 'detallefactura'
+
+class NotaCredito(models.Model):
+    id_notacredito = models.AutoField(primary_key=True)
+    id_factura = models.IntegerField()
+    id_cliente = models.ForeignKey(Clientes, on_delete=models.CASCADE)
+    fechaemision = models.DateTimeField()
+    motivo = models.CharField(max_length=500)
+    estado = models.CharField(max_length=1, choices=[('A', 'A'), ('C', 'C')])
+
+    class Meta:
+        managed = False
+        db_table = 'notacredito'
