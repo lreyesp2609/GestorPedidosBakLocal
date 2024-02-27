@@ -147,7 +147,7 @@ class RealizarPedidoView(View):
             longitud = request.POST.get('longitud')
             estado_pago = request.POST.get('estado_pago', 'En revisión')
             imagen_archivo = request.FILES.get('imagen')
-            image_encoded = None
+            image_64_encode = None
             if imagen_archivo:
                 try:
                     image_read = imagen_archivo.read()
@@ -226,6 +226,7 @@ class RealizarPedidoView(View):
                 descuento=total_descuento,
                 subtotal=subtotal,
                 a_pagar=total_a_pagar,
+                estado='P',
                 codigo_autorizacion=Codigoautorizacion.obtener_codigo_autorizacion_valido(),
                 fecha_emision=datetime.now(),
             )
@@ -244,6 +245,7 @@ class RealizarPedidoView(View):
 
             return JsonResponse({'success': True, 'message': 'Pedido realizado con éxito.'})
         except Exception as e:
+            traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 
