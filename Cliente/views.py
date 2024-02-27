@@ -137,6 +137,7 @@ class RealizarPedidoView(View):
 
             # Acceder a los datos directamente desde request.POST y request.FILES
             precio = request.POST.get('precio', 0)
+            print(precio)
             fecha_pedido = datetime.now()
             tipo_de_pedido = request.POST.get('tipo_de_pedido')
             metodo_de_pago = request.POST.get('metodo_de_pago')
@@ -147,6 +148,13 @@ class RealizarPedidoView(View):
             longitud = request.POST.get('longitud')
             estado_pago = request.POST.get('estado_pago', 'En revisión')
             imagen_archivo = request.FILES.get('imagen')
+            ubicacion=None
+            if latitud:
+                ubicacion= Ubicaciones.objects.create(
+                    latitud=latitud,
+                    longitud=longitud,
+                    sestado=1
+                )
             image_64_encode = None
             if imagen_archivo:
                 try:
@@ -173,11 +181,7 @@ class RealizarPedidoView(View):
                 estado_del_pedido=estado_del_pedido,
                 estado_pago=estado_pago,
                 imagen=image_64_encode,
-                id_Ubicacion= Ubicaciones.objects.create(
-                    latitud=latitud,
-                    longitud=longitud,
-                    sestado=1
-                ),
+                id_Ubicacion= ubicacion,
                 id_Sucursal= Sucursales.objects.get(id_sucursal=sucursal)
             )
 
