@@ -142,6 +142,9 @@ class RealizarPedidoView(View):
             metodo_de_pago = request.POST.get('metodo_de_pago')
             puntos = request.POST.get('puntos', 0)
             estado_del_pedido = request.POST.get('estado_del_pedido', 'O')
+            sucursal = request.POST.get('id_sucursal')
+            latitud = request.POST.get('latitud')
+            longitud = request.POST.get('longitud')
             estado_pago = request.POST.get('estado_pago', 'En revisión')
             imagen_archivo = request.FILES.get('imagen')
             image_encoded = None
@@ -169,7 +172,13 @@ class RealizarPedidoView(View):
                 puntos=puntos,
                 estado_del_pedido=estado_del_pedido,
                 estado_pago=estado_pago,
-                imagen=image_64_encode
+                imagen=image_64_encode,
+                id_Ubicacion= Ubicaciones.objects.create(
+                    latitud=latitud,
+                    longitud=longitud,
+                    sestado=1
+                ),
+                id_Sucursal= Sucursales.objects.get(id_sucursal=sucursal)
             )
 
             for detalle_pedido_data in detalles_pedido['detalles_pedido']:
