@@ -560,10 +560,9 @@ CREATE TABLE DetalleFactura (
 CREATE TABLE NotaCredito (
     id_NotaCredito SERIAL PRIMARY KEY,
     id_Factura INTEGER REFERENCES Factura(id_factura) NOT NULL,
-    id_Cliente INTEGER REFERENCES Clientes(id_Cliente) NOT NULL,
     FechaEmision TIMESTAMP NOT NULL,
     Motivo VARCHAR(500),
-    Estado CHAR(1) CHECK (Estado IN ('A', 'C')) NOT NULL,
+    Estado CHAR(1) CHECK (Estado IN ('A', 'C'))
 );
 
 CREATE TABLE MovimientoInventario (
@@ -573,7 +572,7 @@ CREATE TABLE MovimientoInventario (
 	id_pedidoproveedor INTEGER REFERENCES pedidosproveedor(id_pedidoproveedor),
     id_bodega INTEGER REFERENCES Bodegas(id_Bodega),
     observacion VARCHAR(500),
-    fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,s
     tipoMovimiento CHAR(1) CHECK (tipoMovimiento IN ('E', 'S', 'P','R')) NOT NULL,
     SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
 );
