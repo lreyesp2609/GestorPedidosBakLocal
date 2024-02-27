@@ -1,4 +1,5 @@
 # views.py
+import decimal
 from gettext import translation
 import json
 import traceback
@@ -7,10 +8,11 @@ from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
-from Mesero.models import Factura, Meseros
+from Mesero.models import Factura, Meseros, Pedidos
 from .models import *
 from django.utils.decorators import method_decorator
 import re
+from decimal import Decimal
 
 @csrf_exempt
 def crear_codigosri(request, id_cuenta):
@@ -81,39 +83,52 @@ def crear_codigoautorizacion(request, id_cuenta):
     else:
         # Si la solicitud no es POST, retornar un error
         return JsonResponse({'error': 'Se esperaba una solicitud POST'}, status=400)
-    
 @method_decorator(csrf_exempt, name='dispatch')
 class ValidarFactura(View):
     def post(self, request, *args, **kwargs):
         try:
-            with transaction.atomic():  # Corregir aquí
-                # Obtener el id del punto de facturación del mesero desde los argumentos de la URL
+            with transaction.atomic():
                 id_usuario = kwargs.get('id_cuenta')
                 mesero = Meseros.objects.get(id_cuenta=id_usuario)
                 id_mesero = mesero.id_mesero
 
-                # Verificar si existe un punto de facturación asociado al mesero
                 punto_facturacion = get_object_or_404(Puntofacturacion, id_mesero=id_mesero)
 
-                # Obtener los valores necesarios para la factura utilizando obtener_proximo_numero_factura
                 codigo_factura, numero_factura_desde, numero_factura_hasta = Codigosri.obtener_proximo_numero_factura(
                     punto_facturacion.id_puntofacturacion, punto_facturacion.id_administrador.id_sucursal)
 
-                # Actualizar la factura con los valores obtenidos
-                factura_id = kwargs.get('id_factura')  # Obtener el ID de la factura de los argumentos de la URL
+                factura_id = kwargs.get('id_factura')
                 factura = get_object_or_404(Factura, id_factura=factura_id)
 
+                # Obtener el pedido asociado a la factura
+                pedido = factura.id_pedido
+
+                # Verificar si el tipo de pedido es "D" y el estado de pago es "Denegado"
+                if pedido.tipo_de_pedido == 'D' and pedido.estado_pago == 'Denegado':
+                    return JsonResponse({'error': 'El tipo de pedido es "D", y el estado de pago del pedido asociado es "Denegado". La factura no puede ser validada.'}, status=400)
+
+                # Verificar si el estado de pago del pedido asociado es "Denegado" o "En revisión"
+                if pedido.estado_pago in ['Denegado', 'En revisión']:
+                    return JsonResponse({'error': f'El estado de pago del pedido asociado es "{pedido.estado_pago}", no se puede validar la factura.'}, status=400)
+
+                # Verificar si el tipo de pedido es "L" y el estado de pago es "En Revisión"
+                if pedido.tipo_de_pedido == 'L' and pedido.estado_pago == 'En Revisión':
+                    # Cambiar el estado de pago a "Pagado"
+                    pedido.estado_pago = 'Pagado'
+                    pedido.save()
+                    
+                # Actualizar los detalles de la factura
                 factura.codigo_factura = codigo_factura
                 factura.numero_factura_desde = numero_factura_desde
                 factura.numero_factura_hasta = numero_factura_hasta
 
                 factura.save()
 
-                # Devolver una respuesta indicando que la factura se ha validado correctamente
                 return JsonResponse({'mensaje': 'Factura validada con éxito'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
+
         
 @csrf_exempt
 def crear_punto_facturacion(request, id_cuenta):

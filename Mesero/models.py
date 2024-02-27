@@ -85,7 +85,6 @@ class Detallepedidos(models.Model):
         managed = False
         db_table = 'detallepedidos'
 
-
 class Factura(models.Model):
     id_factura = models.AutoField(primary_key=True)
     id_pedido = models.ForeignKey('Pedidos', models.DO_NOTHING, db_column='id_pedido', blank=True, null=True)
@@ -107,6 +106,20 @@ class Factura(models.Model):
         managed = False
         db_table = 'factura'
 
+
+
+
+
+class NotaCredito(models.Model):
+    id_notacredito = models.AutoField(primary_key=True)
+    id_factura = models.IntegerField()
+    fechaemision = models.DateTimeField()
+    motivo = models.CharField(max_length=500)
+    estado = models.CharField(max_length=1, choices=[('A', 'A'), ('C', 'C')])
+
+    class Meta:
+        managed = False
+        db_table = 'notacredito'
 
 class DetalleFactura(models.Model):
     id_detallefactura = models.AutoField(primary_key=True)
