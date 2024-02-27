@@ -292,7 +292,7 @@ CREATE TABLE Pedidos (
 	id_Ubicacion INTEGER REFERENCES Ubicaciones(id_Ubicacion),
 	id_Sucursal INTEGER REFERENCES Sucursales(id_Sucursal)
 );
-
+ 
 CREATE TABLE DetallePedidos (
 	id_detallePedido SERIAL PRIMARY KEY,
 	id_Pedido INTEGER REFERENCES Pedidos(id_Pedido) NOT NULL,
