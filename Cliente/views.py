@@ -1,4 +1,5 @@
 import base64
+import re
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from Ubicaciones.models import Ubicaciones
@@ -11,7 +12,7 @@ from django.views import View
 from datetime import datetime
 from django.db import transaction
 import json
-from decimal import Decimal
+from decimal import Decimal, InvalidOperation
 import traceback
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -215,7 +216,9 @@ class RealizarPedidoView(View):
                 iva=iva,
                 descuento=total_descuento,
                 subtotal=subtotal,
-                a_pagar=total_a_pagar
+                a_pagar=total_a_pagar,
+                codigo_autorizacion=Codigoautorizacion.obtener_codigo_autorizacion_valido(),
+                fecha_emision=datetime.now(),
             )
 
             for detalle in detalles_factura:
@@ -370,8 +373,6 @@ class obtenerPedidos2(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 
-
-
 @method_decorator(csrf_exempt, name='dispatch')
 class CambiarEstadoPedidos(View):
     @transaction.atomic
@@ -385,7 +386,7 @@ class CambiarEstadoPedidos(View):
 
             # Acceder a los datos directamente desde request.POST y request.FILES
             estado_del_pedido = request.POST.get('estado_del_pedido')
-            dzero = Decimal(str(pedido.precio.replace(',', '.').replace('$', '')))
+            dzero = Decimal(str(pedido.precio.replace(',', '.').replace('€', '').replace('$', '')))
             precio_str = request.POST.get('precio', dzero)
             precio=  precio_str if precio_str else dzero
            
@@ -402,7 +403,7 @@ class CambiarEstadoPedidos(View):
         except Exception as e:
             # Si ocurre un error, devolver un mensaje de error
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
-
+        
 @method_decorator(csrf_exempt, name='dispatch')
 class CambiarEstadoPagos(View):
     @transaction.atomic
@@ -416,7 +417,7 @@ class CambiarEstadoPagos(View):
 
             # Acceder a los datos directamente desde request.POST y request.FILES
             estado_pago = request.POST.get('estado_pago')
-            dzero = Decimal(str(pedido.precio.replace(',', '.').replace('$', '')))
+            dzero = Decimal(str(pedido.precio.replace(',', '.').replace('€', '').replace('$', '')))
             precio_str = request.POST.get('precio', dzero)
             precio=  precio_str if precio_str else dzero
            

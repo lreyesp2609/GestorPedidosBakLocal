@@ -163,6 +163,7 @@ class TodosLosPedidos(View):
             return JsonResponse({'todos_los_pedidos': pedidos_list})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+from decimal import Decimal
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TomarPedido(View):
@@ -183,8 +184,10 @@ class TomarPedido(View):
                 fecha_entrega = request.POST.get('fecha_entrega', None)
                 estado_del_pedido = request.POST.get('estado_del_pedido')
                 observacion_del_cliente = request.POST.get('observacion_del_cliente')
-                
+
                 cliente_instance = get_object_or_404(Clientes, id_cliente=id_cliente_id)
+
+                estado_pago = "En Revisión"
 
                 nuevo_pedido = Pedidos.objects.create(
                     id_cliente=cliente_instance,
@@ -195,6 +198,7 @@ class TomarPedido(View):
                     fecha_pedido=fecha_pedido,
                     fecha_entrega=fecha_entrega,
                     estado_del_pedido=estado_del_pedido,
+                    estado_pago=estado_pago,
                     observacion_del_cliente=observacion_del_cliente,
                 )
 
@@ -216,7 +220,8 @@ class TomarPedido(View):
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                     id_producto_id = detalle_pedido_data.get('id_producto')
                     id_combo_id = detalle_pedido_data.get('id_combo')
-                    precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
+                    precio_unitario_raw = detalle_pedido_data['precio_unitario']
+                    precio_unitario = Decimal(precio_unitario_raw.replace(',', '.').replace('€', '').replace('$', ''))
                     # Impuesto establecido en 0 para evitar que se calcule
                     impuesto = Decimal(0)
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
@@ -275,7 +280,8 @@ class TomarPedido(View):
                     id_producto_id = detalle_pedido_data.get('id_producto')
                     id_combo_id = detalle_pedido_data.get('id_combo')
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
-                    precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
+                    precio_unitario_raw = detalle_pedido_data['precio_unitario']
+                    precio_unitario = Decimal(precio_unitario_raw.replace(',', '.').replace('€', '').replace('$', ''))
                     descuento = Decimal(detalle_pedido_data.get('descuento', 0))
                     valor = (precio_unitario * cantidad) - descuento
 
@@ -306,6 +312,7 @@ class TomarPedido(View):
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class TomarPedidoSinMesa(View):
     def post(self, request, *args, **kwargs):
@@ -589,6 +596,10 @@ class ListaFacturas(View):
             # Formatea los datos
             data = []
             for factura in facturas:
+                pedido = factura.id_pedido
+                estado_pago = pedido.estado_pago if pedido else None
+                tipo_de_pedido = pedido.tipo_de_pedido if pedido else None
+
                 factura_data = {
                     'id_factura': factura.id_factura,
                     'id_pedido': factura.id_pedido.id_pedido if factura.id_pedido else None,
@@ -604,6 +615,8 @@ class ListaFacturas(View):
                     'codigo_autorizacion': factura.codigo_autorizacion,
                     'numero_factura_desde': factura.numero_factura_desde,
                     'numero_factura_hasta': factura.numero_factura_hasta,
+                    'estado_pago': estado_pago,
+                    'tipo_de_pedido': tipo_de_pedido,
                 }
                 data.append(factura_data)
 
