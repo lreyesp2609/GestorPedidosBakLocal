@@ -221,7 +221,8 @@ class TomarPedido(View):
                     id_producto_id = detalle_pedido_data.get('id_producto')
                     id_combo_id = detalle_pedido_data.get('id_combo')
                     precio_unitario_raw = detalle_pedido_data['precio_unitario']
-                    precio_unitario = Decimal(precio_unitario_raw.replace(',', '.').replace('€', '').replace('$', ''))
+                    # Convertir el precio_unitario_raw a un número decimal
+                    precio_unitario = Decimal(precio_unitario_raw.replace(',', '').replace('€', '').strip())
                     # Impuesto establecido en 0 para evitar que se calcule
                     impuesto = Decimal(0)
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
@@ -274,6 +275,7 @@ class TomarPedido(View):
                     a_pagar=a_pagar,
                     codigo_autorizacion=Codigoautorizacion.obtener_codigo_autorizacion_valido(),
                     fecha_emision=datetime.now(),
+                    estado='P'
                 )
                 # Crear los detalles de la factura
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
@@ -281,7 +283,7 @@ class TomarPedido(View):
                     id_combo_id = detalle_pedido_data.get('id_combo')
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
                     precio_unitario_raw = detalle_pedido_data['precio_unitario']
-                    precio_unitario = Decimal(precio_unitario_raw.replace(',', '.').replace('€', '').replace('$', ''))
+                    precio_unitario = Decimal(precio_unitario_raw.replace(',', '').replace('€', '').strip())
                     descuento = Decimal(detalle_pedido_data.get('descuento', 0))
                     valor = (precio_unitario * cantidad) - descuento
 
@@ -312,6 +314,7 @@ class TomarPedido(View):
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class TomarPedidoSinMesa(View):
@@ -623,3 +626,30 @@ class ListaFacturas(View):
             return JsonResponse({'facturas': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+class CrearReversoFactura(View):
+    def post(self, request, id_factura):
+        try:
+            # Obtener la factura original
+            factura_original = get_object_or_404(Factura, id_factura=id_factura)
+            
+            # Obtener el motivo del reverso desde el cuerpo de la solicitud
+            motivo_reverso = request.POST.get('motivo_reverso')
+            if not motivo_reverso:
+                return JsonResponse({'error': 'El motivo del reverso es obligatorio'}, status=400)
+
+            # Crear el reverso de la factura
+            reverso = NotaCredito.objects.create(
+                id_factura=factura_original.id_factura,
+                fechaemision=datetime.now(),
+                motivo=motivo_reverso,
+                estado='A'
+            )
+
+            # Cambiar el estado de la factura original a 'R' (Reversada)
+            factura_original.estado = 'R'
+            factura_original.save()
+
+            return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)

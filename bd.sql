@@ -279,7 +279,7 @@ CREATE TABLE Promociones (
 CREATE TABLE Pedidos (
 	id_Pedido SERIAL PRIMARY KEY,
 	id_Cliente INTEGER REFERENCES Clientes(id_Cliente) NOT NULL,
-	Precio MONEY NOT NULL,
+	Precio NUMERIC(10, 2) NOT NULL,
 	Tipo_de_pedido CHAR(1) CHECK (Tipo_de_pedido IN ('D', 'R', 'L')) NOT NULL,
 	Metodo_de_pago CHAR(1) CHECK (Metodo_de_pago IN ('E', 'T', 'X', 'F')) NOT NULL,
 	Puntos NUMERIC(3) NOT NULL,

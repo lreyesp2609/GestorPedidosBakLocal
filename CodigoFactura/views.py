@@ -116,14 +116,7 @@ class ValidarFactura(View):
                     # Cambiar el estado de pago a "Pagado"
                     pedido.estado_pago = 'Pagado'
                     pedido.save()
-
-                # Eliminar el símbolo de la moneda y cambiar la coma por un punto
-                valor_factura = pedido.precio.replace('€', '').replace(',', '.')
-
-                # Asignar el valor modificado al precio del pedido
-                pedido.precio = valor_factura
-                pedido.save()
-
+                    
                 # Actualizar los detalles de la factura
                 factura.codigo_factura = codigo_factura
                 factura.numero_factura_desde = numero_factura_desde

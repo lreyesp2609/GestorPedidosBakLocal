@@ -12,6 +12,6 @@ urlpatterns = [
     path('confirmarpedido/', ConfirmarPedido.as_view(), name='ConfirmarPedido'),
     path('listar_meseros/', ListaMeseros.as_view(), name='listar_meseros'),
     path('lista_facturas/', ListaFacturas.as_view(), name='lista_facturas'),
-
+    path('crear_reverso_factura/<int:id_factura>/', CrearReversoFactura.as_view(), name='crear_reverso_factura'),
 ]
 
