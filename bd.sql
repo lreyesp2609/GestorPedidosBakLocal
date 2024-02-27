@@ -574,7 +574,7 @@ CREATE TABLE MovimientoInventario (
 	id_pedidoproveedor INTEGER REFERENCES pedidosproveedor(id_pedidoproveedor),
     id_bodega INTEGER REFERENCES Bodegas(id_Bodega),
     observacion VARCHAR(500),
-    fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,s
+    fechaHora TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     tipoMovimiento CHAR(1) CHECK (tipoMovimiento IN ('E', 'S', 'P','R')) NOT NULL,
     SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
 );
