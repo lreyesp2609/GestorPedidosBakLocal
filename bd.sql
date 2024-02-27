@@ -288,7 +288,9 @@ CREATE TABLE Pedidos (
 	Estado_del_pedido CHAR NOT NULL CHECK (Estado_del_pedido IN ('O', 'P', 'C', 'E','R')) NOT NULL,
 	Observacion_del_cliente VARCHAR(500),
     imagen BYTEA,
-    estado_pago varchar(100)
+    estado_pago varchar(100),
+	id_Ubicacion INTEGER REFERENCES Ubicaciones(id_Ubicacion),
+	id_Sucursal INTEGER REFERENCES Sucursales(id_Sucursal)
 );
 
 CREATE TABLE DetallePedidos (
