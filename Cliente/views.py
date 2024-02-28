@@ -148,6 +148,8 @@ class RealizarPedidoView(View):
             longitud = request.POST.get('longitud')
             estado_pago = request.POST.get('estado_pago', 'En revisión')
             imagen_archivo = request.FILES.get('imagen')
+            hora = int(request.POST.get('fecha_hora'))
+            minuto = int(request.POST.get('fecha_minutos'))
             ubicacion=None
             if latitud:
                 ubicacion= Ubicaciones.objects.create(
@@ -170,7 +172,10 @@ class RealizarPedidoView(View):
             total_precio_pedido = Decimal(0)
             total_descuento = Decimal(0)
             detalles_factura = []
-
+            if hora:
+                fecha_hora_entrega = fecha_pedido.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+                fecha_hora_entrega_formato_correcto = fecha_hora_entrega.strftime('%Y-%m-%d %H:%M:%S')
+                fecha_pedido=fecha_hora_entrega_formato_correcto
             nuevo_pedido = Pedidos.objects.create(
                 id_cliente=id_cliente,
                 precio=precio,
