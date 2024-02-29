@@ -8,7 +8,7 @@ from django.shortcuts import get_object_or_404
 from django.views import View
 from django.views.decorators.csrf import csrf_exempt
 from django.db import transaction
-from Mesero.models import Factura, Meseros, Pedidos
+from Mesero.models import Factura, Meseros, Pedidos, Puntofacturacion
 from .models import *
 from django.utils.decorators import method_decorator
 import re
@@ -53,9 +53,6 @@ def crear_codigosri(request, id_cuenta):
     else:
         # Si la solicitud no es POST, retornar un error
         return JsonResponse({'error': 'Se esperaba una solicitud POST'}, status=400)
-
-
-    
 @csrf_exempt
 def crear_codigoautorizacion(request, id_cuenta):
     if request.method == 'POST':
@@ -65,17 +62,28 @@ def crear_codigoautorizacion(request, id_cuenta):
         codigo_autorizacion = request.POST.get('codigo_autorizacion')
         fecha_vencimiento = request.POST.get('fecha_vencimiento')
         fecha_autorizacion = request.POST.get('fecha_autorizacion')
+        ruc = request.POST.get('ruc')  # Recuperar el RUC del formulario
+        nombre = request.POST.get('nombre')  # Recuperar el nombre del formulario
 
         # Verificar si el código de autorización ya existe
         if Codigoautorizacion.objects.filter(codigo_autorizacion=codigo_autorizacion).exists():
             return JsonResponse({'error': 'El código de autorización ya existe'}, status=400)
+
+        # Verificar que el RUC tenga exactamente 10 dígitos
+        if len(ruc) != 10 or not ruc.isdigit():
+            return JsonResponse({'error': 'El RUC ingresado no es válido'}, status=400)
+
+        # Agregar "001" al final del RUC
+        ruc_con_ceros = ruc + "001"
 
         # Crear un nuevo registro en Codigoautorizacion
         Codigoautorizacion.objects.create(
             id_administrador=id_administrador,
             codigo_autorizacion=codigo_autorizacion,
             fecha_vencimiento=fecha_vencimiento,
-            fecha_autorizacion=fecha_autorizacion
+            fecha_autorizacion=fecha_autorizacion,
+            ruc=ruc_con_ceros,  # Utilizar el RUC modificado
+            nombre=nombre  # Agregar el nombre al nuevo registro
         )
 
         # Retornar una respuesta JSON
@@ -122,14 +130,14 @@ class ValidarFactura(View):
                 factura.numero_factura_desde = numero_factura_desde
                 factura.numero_factura_hasta = numero_factura_hasta
 
+                factura.id_punto_facturacion = punto_facturacion  # Establecer el punto de facturación que validó la factura
                 factura.save()
 
                 return JsonResponse({'mensaje': 'Factura validada con éxito'})
         except Exception as e:
             traceback.print_exc()
-            return JsonResponse({'error': str(e)}, status=400)
+            return JsonResponse({'error': str(e)}, status=400) 
 
-        
 @csrf_exempt
 def crear_punto_facturacion(request, id_cuenta):
     if request.method == 'POST':
@@ -139,6 +147,13 @@ def crear_punto_facturacion(request, id_cuenta):
         nombre_punto = request.POST.get('nombre_punto')
         id_mesero_id = request.POST.get('id_mesero')  # Asumiendo que este es el ID del mesero
         sestado = request.POST.get('sestado')
+        ruc = request.POST.get('ruc')
+
+        # Asegurarse de que el RUC tenga 10 dígitos y agregar los 3 últimos dígitos como "001"
+        if len(ruc) == 10:
+            ruc += "001"
+        elif len(ruc) != 13:
+            return JsonResponse({'error': 'El RUC debe tener 10 dígitos'}, status=400)
 
         # Obtener el último código de punto de venta registrado
         ultimo_codigo_punto_venta = Puntofacturacion.objects.order_by('-codigo').first()
@@ -155,7 +170,8 @@ def crear_punto_facturacion(request, id_cuenta):
             nombrepunto=nombre_punto,
             codigo=nuevo_codigo,
             id_mesero_id=id_mesero_id,
-            sestado=sestado
+            sestado=sestado,
+            ruc=ruc
             # Otras columnas que puedas tener en tu modelo
         )
 
@@ -164,6 +180,7 @@ def crear_punto_facturacion(request, id_cuenta):
     else:
         # Si la solicitud no es POST, retornar un error
         return JsonResponse({'error': 'Se esperaba una solicitud POST'}, status=400)
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ValidarPuntoFacturacion(View):
@@ -204,4 +221,3 @@ class ValidarPermisosFactura(View):
                 return JsonResponse({'error': 'Acceso bloqueado: No tiene permiso para validar facturas'}, status=403)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
-

@@ -40,16 +40,15 @@ class Codigosri(models.Model):
             else:
                 raise ValueError("El punto de facturación es None")
         except ObjectDoesNotExist:
-            raise ValueError("No se encontró ningún registro en Codigosri")
-
-
-        
+            raise ValueError("No se encontró ningún registro en Codigosri")       
 class Codigoautorizacion(models.Model):
     id_codigosauto = models.AutoField(primary_key=True)
     id_administrador = models.ForeignKey(Administrador, models.DO_NOTHING, db_column='id_administrador', blank=True, null=True)
-    codigo_autorizacion = models.CharField(max_length=49)
+    codigo_autorizacion = models.CharField(max_length=49, blank=True, null=True)
     fecha_vencimiento = models.DateField(blank=True, null=True)
     fecha_autorizacion = models.DateField(blank=True, null=True)
+    ruc = models.CharField(max_length=13, blank=True, null=True)
+    nombre = models.CharField(max_length=255, blank=True, null=True)
 
     class Meta:
         managed = False
@@ -66,14 +65,15 @@ class Codigoautorizacion(models.Model):
                 return None
         except ObjectDoesNotExist:
             return None
-        
+
 class Puntofacturacion(models.Model):
     id_puntofacturacion = models.AutoField(primary_key=True)
     nombrepunto = models.CharField(max_length=100)
     id_mesero = models.ForeignKey('Mesero.Meseros', models.DO_NOTHING, db_column='id_mesero', blank=True, null=True)
-    codigo = models.CharField(max_length=3)
     id_administrador = models.ForeignKey(Administrador, models.DO_NOTHING, db_column='id_administrador', blank=True, null=True)
+    codigo = models.CharField(max_length=3)
     sestado = models.CharField(max_length=1)
+    ruc = models.CharField(max_length=13, blank=True, null=True)
 
     class Meta:
         managed = False

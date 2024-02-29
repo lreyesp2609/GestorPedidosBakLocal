@@ -532,6 +532,7 @@ CREATE TABLE Factura (
     id_pedido INTEGER REFERENCES Pedidos(id_pedido),
     id_cliente INTEGER REFERENCES Clientes(id_cliente),
     id_mesero INTEGER REFERENCES Meseros(id_mesero),
+    id_punto_facturacion INTEGER REFERENCES PuntoFacturacion(id_PuntoFacturacion),
     fecha_emision TIMESTAMP,
     total NUMERIC(10, 2),
     iva NUMERIC(10, 2),
@@ -544,6 +545,7 @@ CREATE TABLE Factura (
     numero_factura_hasta VARCHAR(9),
     estado VARCHAR(1) CHECK (estado IN ('P', 'V', 'R'))
 );
+
 
 
 CREATE TABLE DetalleFactura (
@@ -628,7 +630,9 @@ CREATE TABLE Codigoautorizacion (
     id_administrador INTEGER REFERENCES Administrador(id_administrador),
     codigo_autorizacion VARCHAR(49),
     fecha_vencimiento DATE,
-    fecha_autorizacion DATE
+    fecha_autorizacion DATE,
+    ruc VARCHAR(13),
+    nombre VARCHAR(255);
 );
 
 CREATE TABLE Codigosri (
@@ -645,8 +649,9 @@ CREATE TABLE PuntoFacturacion (
     id_PuntoFacturacion SERIAL PRIMARY KEY,
     NombrePunto VARCHAR(100) NOT NULL,
     id_Mesero INTEGER REFERENCES Meseros(id_Mesero),
-	id_administrador INTEGER REFERENCES administrador(id_administrador),
+    id_administrador INTEGER REFERENCES administrador(id_administrador),
     Codigo VARCHAR(3) NOT NULL,
-	SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
+    RUC VARCHAR(13),
+    SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
 );
 

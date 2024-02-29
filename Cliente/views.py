@@ -262,7 +262,6 @@ class RealizarPedidoView(View):
             traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
-
 def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
     print("ID de cuenta recibido:", id_cuenta)
     print("ID de pedido recibido:", id_pedido)
@@ -285,11 +284,6 @@ def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
         detalles_factura_list = list(detalles_factura)
         id_cliente = factura.id_cliente_id
 
-        # Obtener información del pedido
-        pedido = Pedidos.objects.get(pk=id_pedido)
-        tipo_de_pedido = pedido.tipo_de_pedido
-        metodo_de_pago = pedido.metodo_de_pago
-
         # Obtener la información de la factura
         codigo_autorizacion_sri = factura.codigo_autorizacion
         codigo_autorizacion_obj = Codigoautorizacion.objects.get(codigo_autorizacion=codigo_autorizacion_sri)
@@ -298,6 +292,10 @@ def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
 
         # Obtener la numeración desde el modelo Codigosri
         numeracion = f"{factura.numero_factura_desde}-{factura.numero_factura_hasta}"
+
+        # Obtener el punto de facturación asociado a la factura
+        punto_facturacion = Puntofacturacion.objects.get(id_puntofacturacion=factura.id_punto_facturacion_id)
+        mesero = Meseros.objects.get(id_mesero=punto_facturacion.id_mesero.id_mesero)  # Obtener el objeto del mesero
 
         factura_data = {
             'id_factura': factura.id_factura,
@@ -316,6 +314,9 @@ def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
             'tipo_de_pedido': tipo_de_pedido,
             'metodo_de_pago': metodo_de_pago,  
             'detalles_factura': detalles_factura_list,
+            'nombre_mesero': mesero.nombre,  # Agregar nombre del mesero
+            'apellido_mesero': mesero.apellido,  # Agregar apellido del mesero
+            'ruc': punto_facturacion.ruc,  # Agregar RUC del punto de facturación
         }
         return JsonResponse(factura_data)
     except Factura.DoesNotExist:
@@ -324,6 +325,8 @@ def ver_factura_cliente(request, id_cuenta, id_pedido, **kwargs):
     except Clientes.DoesNotExist:
         traceback.print_exc()
         return JsonResponse({'error': 'El cliente no existe'}, status=404)
+
+
 
 class obtenerPedidos(View):
     def get(self, request, *args, **kwargs):

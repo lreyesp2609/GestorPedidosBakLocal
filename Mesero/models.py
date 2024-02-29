@@ -93,17 +93,18 @@ class Factura(models.Model):
     id_cliente = models.ForeignKey(Clientes, models.DO_NOTHING, db_column='id_cliente', blank=True, null=True)
     id_mesero = models.ForeignKey('Meseros', models.DO_NOTHING, db_column='id_mesero', blank=True, null=True)
     fecha_emision = models.DateTimeField(blank=True, null=True)
-    total = models.DecimalField(max_digits=10, decimal_places=2)
+    total = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     iva = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     descuento = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     subtotal = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     a_pagar = models.DecimalField(max_digits=10, decimal_places=2, blank=True, null=True)
     codigo_factura = models.CharField(max_length=15, blank=True, null=True)
     codigo_autorizacion = models.CharField(max_length=49, blank=True, null=True)
-    numero_factura_desde = models.CharField(max_length=9)
-    numero_factura_hasta = models.CharField(max_length=9)
-    estado = models.CharField(max_length=1, choices=[('P', 'P'), ('V', 'V'), ('R', 'R')])
-    
+    numero_factura_desde = models.CharField(max_length=9, blank=True, null=True)
+    numero_factura_hasta = models.CharField(max_length=9, blank=True, null=True)
+    estado = models.CharField(max_length=1, blank=True, null=True)
+    id_punto_facturacion = models.ForeignKey(Puntofacturacion, models.DO_NOTHING, db_column='id_punto_facturacion', blank=True, null=True)
+
     class Meta:
         managed = False
         db_table = 'factura'
