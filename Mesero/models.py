@@ -107,20 +107,6 @@ class Factura(models.Model):
         db_table = 'factura'
 
 
-
-
-
-class NotaCredito(models.Model):
-    id_notacredito = models.AutoField(primary_key=True)
-    id_factura = models.IntegerField()
-    fechaemision = models.DateTimeField()
-    motivo = models.CharField(max_length=500)
-    estado = models.CharField(max_length=1, choices=[('A', 'A'), ('C', 'C')])
-
-    class Meta:
-        managed = False
-        db_table = 'notacredito'
-
 class DetalleFactura(models.Model):
     id_detallefactura = models.AutoField(primary_key=True)
     id_factura = models.ForeignKey(Factura, on_delete=models.CASCADE, db_column='id_factura')
@@ -136,10 +122,10 @@ class DetalleFactura(models.Model):
         managed = False
         db_table = 'detallefactura'
 
+
 class NotaCredito(models.Model):
     id_notacredito = models.AutoField(primary_key=True)
     id_factura = models.IntegerField()
-    id_cliente = models.ForeignKey(Clientes, on_delete=models.CASCADE)
     fechaemision = models.DateTimeField()
     motivo = models.CharField(max_length=500)
     estado = models.CharField(max_length=1, choices=[('A', 'A'), ('C', 'C')])
@@ -147,3 +133,4 @@ class NotaCredito(models.Model):
     class Meta:
         managed = False
         db_table = 'notacredito'
+

@@ -588,6 +588,8 @@ class ListaMeseros(View):
             return JsonResponse({'meseros': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
+        
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaFacturas(View):
@@ -620,21 +622,28 @@ class ListaFacturas(View):
                     'numero_factura_hasta': factura.numero_factura_hasta,
                     'estado_pago': estado_pago,
                     'tipo_de_pedido': tipo_de_pedido,
+                    'estado': factura.estado
                 }
                 data.append(factura_data)
 
             return JsonResponse({'facturas': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
 
+
+        
+@method_decorator(csrf_exempt, name='dispatch')
 class CrearReversoFactura(View):
     def post(self, request, id_factura):
         try:
             # Obtener la factura original
             factura_original = get_object_or_404(Factura, id_factura=id_factura)
             
-            # Obtener el motivo del reverso desde el cuerpo de la solicitud
-            motivo_reverso = request.POST.get('motivo_reverso')
+            # Obtener el motivo del reverso desde el cuerpo de la solicitud JSON
+            body_unicode = request.body.decode('utf-8')
+            body_data = json.loads(body_unicode)
+            motivo_reverso = body_data.get('motivo_reverso')
             if not motivo_reverso:
                 return JsonResponse({'error': 'El motivo del reverso es obligatorio'}, status=400)
 
