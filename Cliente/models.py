@@ -46,3 +46,4 @@ class Ubicaciones(models.Model):
     class Meta:
         managed = False
         db_table = 'ubicaciones'
+

@@ -669,3 +669,4 @@ class CrearReversoFactura(View):
             return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+        

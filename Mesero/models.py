@@ -137,3 +137,4 @@ class NotaCredito(models.Model):
         managed = False
         db_table = 'notacredito'
 
+

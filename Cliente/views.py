@@ -484,4 +484,3 @@ class CambiarEstadoPagos(View):
             traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
-

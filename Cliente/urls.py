@@ -13,3 +13,4 @@ urlpatterns = [
     path('actualizar_pedido/<int:id_pedido>/', CambiarEstadoPedidos.as_view(), name='actualizar_pedido'),
     path('actualizar_pago/<int:id_pedido>/', CambiarEstadoPagos.as_view(), name='actualizar_pago'),
 ]
+
