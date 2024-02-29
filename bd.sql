@@ -655,3 +655,12 @@ CREATE TABLE PuntoFacturacion (
     SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
 );
 
+CREATE TABLE Datos_Bancarios (
+    id_Cuenta SERIAL PRIMARY KEY,
+    Nombre_banco VARCHAR(100),
+    tipo_cuenta VARCHAR(50),
+    num_cuenta VARchar(100),
+    nombreapellidos VARCHAR(100),
+    identificacion VARCHAR(100), 
+    correoelectronico VARCHAR(256)
+);
