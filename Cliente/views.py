@@ -13,7 +13,7 @@ from datetime import datetime
 from django.db import transaction
 import json
 from decimal import Decimal, InvalidOperation
-from pagos.models import PagosTransferencia
+from pagos.models import PagosTransferencia, PagosEfectivo
 from Login.models import Cuenta
 import traceback
 
@@ -453,6 +453,16 @@ class CambiarEstadoPagos(View):
                         id_cuentacobrador = usuario,
                         comprobante = pedido.imagen,
                         hora_confirmacion_pago = datetime.now()
+                    )
+                if pedido.metodo_de_pago=='E':
+                    PagosEfec=PagosEfectivo.objects.create(
+                        estado = 'X',
+                        cantidad = pedido.precio,
+                        cantidadentregada = pedido.precio,
+                        cambioeentregado = 0,
+                        hora_de_pago = datetime.now(),
+                        id_cuentacobrador = usuario,
+                        id_pedido = pedido
                     )
 
                 return JsonResponse({'success': True, 'message': 'Pago actualizado con éxito.'})

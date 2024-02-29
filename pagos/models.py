@@ -48,3 +48,16 @@ class PagosTransferencia(models.Model):
     class Meta:
         managed = False
         db_table = 'pagostransferencia'
+class PagosEfectivo(models.Model):
+    id_pagoefectivo = models.AutoField(primary_key=True)
+    estado = models.CharField(max_length=1, choices=[('X', 'X'), ('P', 'P')], null=False)
+    cantidad = models.DecimalField(max_digits=9, decimal_places=2, null=False)
+    cantidadentregada = models.DecimalField(max_digits=9, decimal_places=2, null=False, db_column='cantidadentregada')
+    cambioeentregado = models.DecimalField(max_digits=9, decimal_places=2, null=False, db_column='cambioeentregado')
+    hora_de_pago = models.DateTimeField(null=False)
+    id_cuentacobrador = models.ForeignKey(Cuenta, on_delete=models.CASCADE, db_column='id_cuentacobrador')
+    id_pedido = models.ForeignKey(Pedidos, on_delete=models.CASCADE, db_column='id_pedido')
+
+    class Meta:
+        managed = False
+        db_table = 'pagosefectivo'
