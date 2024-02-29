@@ -527,6 +527,16 @@ CREATE TABLE detallepedidoproveedor
     id_um INTEGER REFERENCES unidadmedida(idum) NOT NULL
 );
 
+CREATE TABLE PuntoFacturacion (
+    id_PuntoFacturacion SERIAL PRIMARY KEY,
+    NombrePunto VARCHAR(100) NOT NULL,
+    id_Mesero INTEGER REFERENCES Meseros(id_Mesero),
+    id_administrador INTEGER REFERENCES administrador(id_administrador),
+    Codigo VARCHAR(3) NOT NULL,
+    RUC VARCHAR(13),
+    SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
+);
+
 CREATE TABLE Factura (
     id_factura SERIAL PRIMARY KEY,
     id_pedido INTEGER REFERENCES Pedidos(id_pedido),
@@ -632,7 +642,7 @@ CREATE TABLE Codigoautorizacion (
     fecha_vencimiento DATE,
     fecha_autorizacion DATE,
     ruc VARCHAR(13),
-    nombre VARCHAR(255);
+    nombre VARCHAR(255)
 );
 
 CREATE TABLE Codigosri (
@@ -643,16 +653,6 @@ CREATE TABLE Codigosri (
     rango_desde VARCHAR(9),
     rango_hasta VARCHAR(9),
     UNIQUE (numero_factura_desde, numero_factura_hasta)
-);
-
-CREATE TABLE PuntoFacturacion (
-    id_PuntoFacturacion SERIAL PRIMARY KEY,
-    NombrePunto VARCHAR(100) NOT NULL,
-    id_Mesero INTEGER REFERENCES Meseros(id_Mesero),
-    id_administrador INTEGER REFERENCES administrador(id_administrador),
-    Codigo VARCHAR(3) NOT NULL,
-    RUC VARCHAR(13),
-    SEstado CHAR(1) CHECK (SEstado IN ('0', '1')) NOT NULL
 );
 
 CREATE TABLE Datos_Bancarios (
