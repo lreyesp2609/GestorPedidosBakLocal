@@ -1,6 +1,7 @@
 from django.db import models
 from Empresa.models import Empresa
 from Login.models import Cuenta
+from Mesero.models import Pedidos
 
 class Tipopago(models.Model):
     id_tipopago = models.AutoField(primary_key=True)
@@ -34,3 +35,16 @@ class Pagos(models.Model):
     class Meta:
         managed = False
         db_table = 'pagos'
+class PagosTransferencia(models.Model):
+    id_pagotransferencia = models.AutoField(primary_key=True)
+    id_pedido = models.ForeignKey(Pedidos, on_delete=models.CASCADE, db_column='id_pedido')
+    estado = models.CharField(max_length=1, choices=[('E', 'E'), ('C', 'C')], null=False)
+    cantidad = models.DecimalField(max_digits=9, decimal_places=2, null=False)
+    hora_de_pago = models.DateTimeField(null=False)
+    id_cuentacobrador = models.ForeignKey(Cuenta, on_delete=models.CASCADE, db_column='id_cuentacobrador')
+    comprobante = models.BinaryField(null=False)
+    hora_confirmacion_pago = models.DateTimeField(null=True)
+
+    class Meta:
+        managed = False
+        db_table = 'pagostransferencia'

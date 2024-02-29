@@ -13,6 +13,8 @@ from datetime import datetime
 from django.db import transaction
 import json
 from decimal import Decimal, InvalidOperation
+from pagos.models import PagosTransferencia
+from Login.models import Cuenta
 import traceback
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -357,8 +359,6 @@ class obtenerPedidos2(View):
         try:
             pedidos = Pedidos.objects.all()
 
-
-            # Crear una lista para almacenar los datos de cada pedido
             lista_pedidos = []
 
             for pedido in pedidos:
@@ -429,30 +429,35 @@ class CambiarEstadoPagos(View):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         try:
-            id_pedido = kwargs.get('id_pedido')
+            with transaction.atomic():
+                id_pedido = kwargs.get('id_pedido')
 
-            # Obtener el objeto Pedidos que se desea actualizar
-            pedido = Pedidos.objects.get(id_pedido=id_pedido)
+                # Obtener el objeto Pedidos que se desea actualizar
+                pedido = Pedidos.objects.get(id_pedido=id_pedido)
+                idcuenta= request.POST.get('id_cuenta')
+                usuario= Cuenta.objects.get(id_cuenta=idcuenta)
+
+                # Acceder a los datos directamente desde request.POST y request.FILES
+                estado_pago = request.POST.get('estado_pago')
             
+                # Actualizar los campos necesarios
+                pedido.estado_pago = estado_pago
+                
+                pedido.save()
+                if pedido.metodo_de_pago=='T':
+                    PagosTrans=PagosTransferencia.objects.create(
+                        id_pedido = pedido,
+                        estado = 'E',
+                        cantidad = pedido.precio,
+                        hora_de_pago = pedido.fecha_pedido,
+                        id_cuentacobrador = usuario,
+                        comprobante = pedido.imagen,
+                        hora_confirmacion_pago = datetime.now()
+                    )
 
-            # Acceder a los datos directamente desde request.POST y request.FILES
-            estado_pago = request.POST.get('estado_pago')
-            dzero = Decimal(str(pedido.precio.replace(',', '.').replace('€', '').replace('$', '')))
-            precio_str = request.POST.get('precio', dzero)
-            precio=  precio_str if precio_str else dzero
-           
-            # Actualizar los campos necesarios
-            pedido.estado_pago = estado_pago
-          
-            pedido.precio = precio
-            # Puedes hacer lo mismo para otros campos que desees actualizar
-
-            # Guardar los cambios en la base de datos
-            pedido.save()
-
-            return JsonResponse({'success': True, 'message': 'Pago actualizado con éxito.'})
+                return JsonResponse({'success': True, 'message': 'Pago actualizado con éxito.'})
         except Exception as e:
-            # Si ocurre un error, devolver un mensaje de error
+            traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 
