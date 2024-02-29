@@ -61,3 +61,14 @@ class PagosEfectivo(models.Model):
     class Meta:
         managed = False
         db_table = 'pagosefectivo'
+class PagosPasarela(models.Model):
+    id_pagopasarela = models.AutoField(primary_key=True)
+    id_pedido = models.ForeignKey(Pedidos, on_delete=models.CASCADE, db_column='id_pedido')
+    estado = models.CharField(max_length=1, choices=[('E', 'E'), ('C', 'C')], null=False)
+    cantidad = models.DecimalField(max_digits=9, decimal_places=2, null=False)
+    hora_de_pago = models.DateTimeField(null=False)
+    codigo_unico = models.BinaryField(null=False)  # Cambiado a BinaryField para almacenar BYTEA
+
+    class Meta:
+        managed = False
+        db_table = 'pagospasarela'
