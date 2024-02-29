@@ -13,7 +13,7 @@ from datetime import datetime
 from django.db import transaction
 import json
 from decimal import Decimal, InvalidOperation
-from pagos.models import PagosTransferencia, PagosEfectivo
+from pagos.models import PagosTransferencia, PagosEfectivo,PagosPasarela
 from Login.models import Cuenta
 import traceback
 
@@ -150,8 +150,8 @@ class RealizarPedidoView(View):
             longitud = request.POST.get('longitud')
             estado_pago = request.POST.get('estado_pago', 'En revisión')
             imagen_archivo = request.FILES.get('imagen')
-            hora = int(request.POST.get('fecha_hora'))
-            minuto = int(request.POST.get('fecha_minutos'))
+            hora = (request.POST.get('fecha_hora'))
+            
             ubicacion=None
             if latitud:
                 ubicacion= Ubicaciones.objects.create(
@@ -175,6 +175,8 @@ class RealizarPedidoView(View):
             total_descuento = Decimal(0)
             detalles_factura = []
             if hora:
+                hora=int(hora)
+                minuto = int(request.POST.get('fecha_minutos'))
                 fecha_hora_entrega = fecha_pedido.replace(hour=hora, minute=minuto, second=0, microsecond=0)
                 fecha_hora_entrega_formato_correcto = fecha_hora_entrega.strftime('%Y-%m-%d %H:%M:%S')
                 fecha_pedido=fecha_hora_entrega_formato_correcto
@@ -463,6 +465,14 @@ class CambiarEstadoPagos(View):
                         hora_de_pago = datetime.now(),
                         id_cuentacobrador = usuario,
                         id_pedido = pedido
+                    )
+                if pedido.metodo_de_pago=='X':
+                    PagosPas=PagosPasarela.objects.create(
+                        id_pedido = pedido,
+                        estado = 'E',
+                        cantidad = pedido.precio,
+                        hora_de_pago = pedido.fecha_pedido,
+                        codigo_unico = '102'
                     )
 
                 return JsonResponse({'success': True, 'message': 'Pago actualizado con éxito.'})
