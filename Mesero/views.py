@@ -476,6 +476,10 @@ def ver_factura(request, id_pedido):
         print('aver3')
         # Obtener la numeración desde el modelo Codigosri
         numeracion = f"{factura.numero_factura_desde}-{factura.numero_factura_hasta}"
+        
+        punto_facturacion = Puntofacturacion.objects.get(id_puntofacturacion=factura.id_punto_facturacion_id)
+        mesero = Meseros.objects.get(id_mesero=punto_facturacion.id_mesero.id_mesero)  # Obtener el objeto del mesero
+
         print('aver4')
         factura_data = {
             'id_factura': factura.id_factura,
@@ -494,6 +498,9 @@ def ver_factura(request, id_pedido):
             'tipo_de_pedido': tipo_de_pedido,
             'metodo_de_pago': metodo_de_pago,  
             'detalles_factura': detalles_factura_list,
+            'nombre_mesero': mesero.nombre,  # Agregar nombre del mesero
+            'apellido_mesero': mesero.apellido,  # Agregar apellido del mesero
+            'ruc': punto_facturacion.ruc,  # Agregar RUC del punto de facturación
         }
         print('aver5')
         return JsonResponse(factura_data)
