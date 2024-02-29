@@ -153,6 +153,36 @@ class VerificarRolView(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 
+@method_decorator(csrf_exempt, name='dispatch')
+class DevolverUsuario(View):
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            token = data.get('token')
+
+            if not token:
+                return JsonResponse({'error': 'Token no proporcionado'}, status=400)
+
+            # Decodificar el token para obtener la información del usuario
+            payload = jwt.decode(token, settings.SECRET_KEY, algorithms=['HS256'])
+
+            # Extraer el rol del payload
+            cuenta = payload.get('id_cuenta')
+
+            if cuenta:
+                return JsonResponse({'id_cuenta': cuenta})
+            else:
+                return JsonResponse({'error': 'No se pudo extraer la cuenta del token'}, status=500)
+
+        except jwt.ExpiredSignatureError:
+            return JsonResponse({'error': 'Token expirado'}, status=401)
+
+        except jwt.InvalidTokenError:
+            return JsonResponse({'error': 'Token inválido'}, status=401)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
     def handle_cliente(self, cuenta):
         cliente = Clientes.objects.filter(id_cuenta=cuenta.id_cuenta).first()
 

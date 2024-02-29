@@ -6,6 +6,7 @@ from Mesa.models import Mesas
 from Producto.models import *
 from Combos.models import *
 from CodigoFactura.models import *
+from Ubicaciones.models import *
 #from Promociones.models import Promociones
 # Create your models here.
 class Cuenta(models.Model):
@@ -52,7 +53,8 @@ class Pedidos(models.Model):
     observacion_del_cliente = models.CharField(max_length=500, blank=True, null=True)
     estado_pago = models.CharField(max_length=100, blank=True, null=True)
     imagen = models.BinaryField(blank=True, null=True)
-
+    id_Ubicacion= models.ForeignKey(Ubicaciones, models.DO_NOTHING, db_column='id_ubicacion', null=True)
+    id_Sucursal= models.ForeignKey(Sucursales, models.DO_NOTHING, db_column='id_sucursal', null=True)
 
     class Meta:
         managed = False

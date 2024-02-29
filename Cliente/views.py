@@ -13,6 +13,8 @@ from datetime import datetime
 from django.db import transaction
 import json
 from decimal import Decimal, InvalidOperation
+from pagos.models import PagosTransferencia, PagosEfectivo
+from Login.models import Cuenta
 import traceback
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -137,14 +139,27 @@ class RealizarPedidoView(View):
 
             # Acceder a los datos directamente desde request.POST y request.FILES
             precio = request.POST.get('precio', 0)
+            print(precio)
             fecha_pedido = datetime.now()
             tipo_de_pedido = request.POST.get('tipo_de_pedido')
             metodo_de_pago = request.POST.get('metodo_de_pago')
             puntos = request.POST.get('puntos', 0)
             estado_del_pedido = request.POST.get('estado_del_pedido', 'O')
+            sucursal = request.POST.get('id_sucursal')
+            latitud = request.POST.get('latitud')
+            longitud = request.POST.get('longitud')
             estado_pago = request.POST.get('estado_pago', 'En revisión')
             imagen_archivo = request.FILES.get('imagen')
-            image_encoded = None
+            hora = int(request.POST.get('fecha_hora'))
+            minuto = int(request.POST.get('fecha_minutos'))
+            ubicacion=None
+            if latitud:
+                ubicacion= Ubicaciones.objects.create(
+                    latitud=latitud,
+                    longitud=longitud,
+                    sestado=1
+                )
+            image_64_encode = None
             if imagen_archivo:
                 try:
                     image_read = imagen_archivo.read()
@@ -159,7 +174,10 @@ class RealizarPedidoView(View):
             total_precio_pedido = Decimal(0)
             total_descuento = Decimal(0)
             detalles_factura = []
-
+            if hora:
+                fecha_hora_entrega = fecha_pedido.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+                fecha_hora_entrega_formato_correcto = fecha_hora_entrega.strftime('%Y-%m-%d %H:%M:%S')
+                fecha_pedido=fecha_hora_entrega_formato_correcto
             nuevo_pedido = Pedidos.objects.create(
                 id_cliente=id_cliente,
                 precio=precio,
@@ -169,7 +187,9 @@ class RealizarPedidoView(View):
                 puntos=puntos,
                 estado_del_pedido=estado_del_pedido,
                 estado_pago=estado_pago,
-                imagen=image_64_encode
+                imagen=image_64_encode,
+                id_Ubicacion= ubicacion,
+                id_Sucursal= Sucursales.objects.get(id_sucursal=sucursal)
             )
 
             for detalle_pedido_data in detalles_pedido['detalles_pedido']:
@@ -217,6 +237,7 @@ class RealizarPedidoView(View):
                 descuento=total_descuento,
                 subtotal=subtotal,
                 a_pagar=total_a_pagar,
+                estado='P',
                 codigo_autorizacion=Codigoautorizacion.obtener_codigo_autorizacion_valido(),
                 fecha_emision=datetime.now(),
             )
@@ -235,6 +256,7 @@ class RealizarPedidoView(View):
 
             return JsonResponse({'success': True, 'message': 'Pedido realizado con éxito.'})
         except Exception as e:
+            traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 
@@ -337,8 +359,6 @@ class obtenerPedidos2(View):
         try:
             pedidos = Pedidos.objects.all()
 
-
-            # Crear una lista para almacenar los datos de cada pedido
             lista_pedidos = []
 
             for pedido in pedidos:
@@ -409,30 +429,45 @@ class CambiarEstadoPagos(View):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         try:
-            id_pedido = kwargs.get('id_pedido')
+            with transaction.atomic():
+                id_pedido = kwargs.get('id_pedido')
 
-            # Obtener el objeto Pedidos que se desea actualizar
-            pedido = Pedidos.objects.get(id_pedido=id_pedido)
+                # Obtener el objeto Pedidos que se desea actualizar
+                pedido = Pedidos.objects.get(id_pedido=id_pedido)
+                idcuenta= request.POST.get('id_cuenta')
+                usuario= Cuenta.objects.get(id_cuenta=idcuenta)
+
+                # Acceder a los datos directamente desde request.POST y request.FILES
+                estado_pago = request.POST.get('estado_pago')
             
+                # Actualizar los campos necesarios
+                pedido.estado_pago = estado_pago
+                
+                pedido.save()
+                if pedido.metodo_de_pago=='T':
+                    PagosTrans=PagosTransferencia.objects.create(
+                        id_pedido = pedido,
+                        estado = 'E',
+                        cantidad = pedido.precio,
+                        hora_de_pago = pedido.fecha_pedido,
+                        id_cuentacobrador = usuario,
+                        comprobante = pedido.imagen,
+                        hora_confirmacion_pago = datetime.now()
+                    )
+                if pedido.metodo_de_pago=='E':
+                    PagosEfec=PagosEfectivo.objects.create(
+                        estado = 'X',
+                        cantidad = pedido.precio,
+                        cantidadentregada = pedido.precio,
+                        cambioeentregado = 0,
+                        hora_de_pago = datetime.now(),
+                        id_cuentacobrador = usuario,
+                        id_pedido = pedido
+                    )
 
-            # Acceder a los datos directamente desde request.POST y request.FILES
-            estado_pago = request.POST.get('estado_pago')
-            dzero = Decimal(str(pedido.precio.replace(',', '.').replace('€', '').replace('$', '')))
-            precio_str = request.POST.get('precio', dzero)
-            precio=  precio_str if precio_str else dzero
-           
-            # Actualizar los campos necesarios
-            pedido.estado_pago = estado_pago
-          
-            pedido.precio = precio
-            # Puedes hacer lo mismo para otros campos que desees actualizar
-
-            # Guardar los cambios en la base de datos
-            pedido.save()
-
-            return JsonResponse({'success': True, 'message': 'Pago actualizado con éxito.'})
+                return JsonResponse({'success': True, 'message': 'Pago actualizado con éxito.'})
         except Exception as e:
-            # Si ocurre un error, devolver un mensaje de error
+            traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
 
 
