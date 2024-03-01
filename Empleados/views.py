@@ -8,6 +8,7 @@ from Administrador.models import Administrador
 from django.utils.decorators import method_decorator
 from django.contrib.auth.hashers import make_password, check_password
 from django.views.decorators.csrf import csrf_exempt
+from Administrador.models import datosBancarios
 from django.http import JsonResponse
 from Sucursal.models import Sucursales
 import json
@@ -311,3 +312,45 @@ def listar_empleados2(request, **kwargs):
         return JsonResponse({'empleados': empleados})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+    
+@method_decorator(csrf_exempt, name='dispatch')
+class AgregarDatosBancarios(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            # Obtener los datos del cuerpo de la solicitud en formato JSON
+            data = json.loads(request.body.decode('utf-8'))
+
+            nombrebanco = data.get('banco')
+            tipo_cuenta = data.get('tipoCuenta')
+            num_cuenta = data.get('numeroCuenta')
+            identificacion = data.get('cedula')
+            correoelectronico = data.get('email')
+            nombreapellidos = data.get('nombreApellidos')
+
+            nueva_cuentaB = datosBancarios.objects.create(
+                nombre_banco=nombrebanco,
+                tipo_cuenta=tipo_cuenta,
+                num_cuenta=num_cuenta,
+                identificacion=identificacion,
+                correoelectronico=correoelectronico,
+                nombreapellidos=nombreapellidos
+            )
+            nueva_cuentaB.save()
+
+            return JsonResponse({'success': True, 'message': 'Cuenta bancaria guardada.'})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
+
+
+
+class ObtenerDatosBancarios(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén todos los registros de la tabla datosBancarios
+            todos_los_registros = datosBancarios.objects.all().values()
+
+            # Devuelve la respuesta JSON
+            return JsonResponse({'Cuentas': list(todos_los_registros)})
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': str(e)}, status=500)
