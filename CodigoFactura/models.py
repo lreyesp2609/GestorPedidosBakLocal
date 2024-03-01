@@ -1,4 +1,4 @@
-from datetime import datetime, timezone
+from django.utils import timezone
 from django.db import models
 from django.core.exceptions import ObjectDoesNotExist
 from Administrador.models import *
@@ -53,14 +53,24 @@ class Codigoautorizacion(models.Model):
     class Meta:
         managed = False
         db_table = 'codigoautorizacion'
+
     @classmethod
     def obtener_codigo_autorizacion_valido(cls):
         try:
-            codigo_autorizacion = cls.objects.filter(fecha_vencimiento__gte=datetime.now(timezone.utc)).first()
+            now = timezone.now().date()  # Obtener solo la fecha actual
+            codigo_autorizacion = cls.objects.filter(fecha_vencimiento__gte=now).first()
             if codigo_autorizacion:
-                codigo_autorizacion.fecha_autorizacion = datetime.now(timezone.utc)
-                codigo_autorizacion.save()
-                return codigo_autorizacion.codigo_autorizacion
+                if codigo_autorizacion.fecha_vencimiento <= now:
+                    # Si la fecha de vencimiento ya pasó, obtener el siguiente código válido
+                    codigo_autorizacion = cls.objects.filter(fecha_vencimiento__gt=now).order_by('fecha_vencimiento').first()
+                    if codigo_autorizacion:
+                        codigo_autorizacion.fecha_autorizacion = now
+                        codigo_autorizacion.save()
+                        return codigo_autorizacion.codigo_autorizacion
+                    else:
+                        return None
+                else:
+                    return codigo_autorizacion.codigo_autorizacion
             else:
                 return None
         except ObjectDoesNotExist:
