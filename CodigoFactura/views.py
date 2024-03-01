@@ -221,4 +221,26 @@ class ValidarPermisosFactura(View):
                 return JsonResponse({'error': 'Acceso bloqueado: No tiene permiso para validar facturas'}, status=403)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
-        
+@method_decorator(csrf_exempt, name='dispatch')
+class VerCodigos(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtener códigos de autorización
+            codigos_autorizacion = Codigoautorizacion.objects.all()
+            codigos_autorizacion_data = []
+
+            for codigo_autorizacion in codigos_autorizacion:
+                codigo_autorizacion_data = {
+                    'id_codigosauto': codigo_autorizacion.id_codigosauto,
+                    'id_administrador': codigo_autorizacion.id_administrador_id,  # Obtener solo el ID del administrador
+                    'codigo_autorizacion': codigo_autorizacion.codigo_autorizacion,
+                    'fecha_vencimiento': str(codigo_autorizacion.fecha_vencimiento),  # Convertir a cadena para JSON
+                    'fecha_autorizacion': str(codigo_autorizacion.fecha_autorizacion),  # Convertir a cadena para JSON
+                    'ruc': codigo_autorizacion.ruc,
+                    'nombre': codigo_autorizacion.nombre,
+                }
+                codigos_autorizacion_data.append(codigo_autorizacion_data)
+
+            return JsonResponse({'codigos_autorizacion': codigos_autorizacion_data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)

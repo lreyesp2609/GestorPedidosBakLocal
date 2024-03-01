@@ -9,6 +9,8 @@ urlpatterns = [
     path('crear_punto/<int:id_cuenta>/', crear_punto_facturacion, name='crear_punto_facturacion'),
     path('validar_punto_facturacion/', ValidarPuntoFacturacion.as_view(), name='validar_punto_facturacion'),
     path('validar_permisos_factura/<int:id_cuenta>/', ValidarPermisosFactura.as_view(), name='validar_permisos_factura'),
+    path('vercodigo/', VerCodigos.as_view(), name='vercodigo'),
+
     # Otras URLs de tu aplicación
 ]
 

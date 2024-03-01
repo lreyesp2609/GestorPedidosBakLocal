@@ -541,8 +541,7 @@ class ObtenerMeseroView(View):
             
             if id_usuario:
                 # Si se proporciona un ID de usuario, intenta obtener ese usuario
-                cuenta = get_object_or_404(Cuenta, id_cuenta=id_usuario)
-                mesero = get_object_or_404(Meseros, id_cuenta=cuenta)
+                mesero = get_object_or_404(Meseros, id_cuenta=id_usuario)
 
                 mesero_data = {
                     'id_mesero': mesero.id_mesero,
@@ -552,7 +551,6 @@ class ObtenerMeseroView(View):
                     'apellido': mesero.apellido,
                     'nombre': mesero.nombre,
                     'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
-                    'id_cuenta': mesero.id_cuenta.id_cuenta if mesero.id_cuenta else None,
                     'sestado': mesero.sestado,
                 }
 
