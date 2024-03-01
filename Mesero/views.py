@@ -11,7 +11,7 @@ from datetime import datetime
 from Mesero.models import *
 from decimal import Decimal
 from Mesa.models import Mesas
-from Inventario.models import MovimientoInventario
+from Inventario.models import *
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidos(View):
@@ -596,7 +596,6 @@ class ListaMeseros(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
         
-        
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaFacturas(View):
@@ -637,36 +636,87 @@ class ListaFacturas(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
         
-
-
         
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearReversoFactura(View):
     def post(self, request, id_factura):
         try:
-            # Obtener la factura original
-            factura_original = get_object_or_404(Factura, id_factura=id_factura)
-            
-            # Obtener el motivo del reverso desde el cuerpo de la solicitud JSON
-            body_unicode = request.body.decode('utf-8')
-            body_data = json.loads(body_unicode)
-            motivo_reverso = body_data.get('motivo_reverso')
-            if not motivo_reverso:
-                return JsonResponse({'error': 'El motivo del reverso es obligatorio'}, status=400)
+            with transaction.atomic():
+                # Obtener la factura original
+                factura_original = get_object_or_404(Factura, id_factura=id_factura)
+                
+                # Obtener el motivo del reverso desde el cuerpo de la solicitud JSON
+                body_unicode = request.body.decode('utf-8')
+                body_data = json.loads(body_unicode)
+                motivo_reverso = body_data.get('motivo_reverso')
+                if not motivo_reverso:
+                    return JsonResponse({'error': 'El motivo del reverso es obligatorio'}, status=400)
 
-            # Crear el reverso de la factura
-            reverso = NotaCredito.objects.create(
-                id_factura=factura_original.id_factura,
-                fechaemision=datetime.now(),
-                motivo=motivo_reverso,
-                estado='A'
-            )
+                # Crear el reverso de la factura
+                reverso = NotaCredito.objects.create(
+                    id_factura=factura_original.id_factura,
+                    fechaemision=datetime.now(),
+                    motivo=motivo_reverso,
+                    estado='A'
+                )
 
-            # Cambiar el estado de la factura original a 'R' (Reversada)
-            factura_original.estado = 'R'
-            factura_original.save()
+                # Cambiar el estado de la factura original a 'R' (Reversada)
+                factura_original.estado = 'R'
+                factura_original.save()
+                
+                # Obtener el pedido asociado con la factura
+                pedido = factura_original.id_pedido
+                
+                # Obtener los movimientos de inventario asociados con el pedido
+                movimientos_origen = MovimientoInventario.objects.filter(id_pedido=pedido)
+                
+                # Cambiar el estado del pedido a 'R' (Reversado)
+                pedido.estado_del_pedido = 'R'
+                pedido.save()
+                
+                # Iterar sobre los movimientos de inventario asociados con el pedido
+                for movimiento_origen in movimientos_origen:
+                    # Crear el movimiento de reversion
+                    nuevo_movimiento_reversion = MovimientoInventario.objects.create(
+                        id_cuenta=movimiento_origen.id_cuenta,
+                        id_pedido=movimiento_origen.id_pedido,
+                        id_bodega=movimiento_origen.id_bodega,
+                        tipomovimiento='R',
+                        sestado='1',  # Establecer el sestado como '1'
+                        observacion=f'Pedido reversado: {factura_original.codigo_factura}'
+                    )
+                    
+                    # Modificar el sestado del movimiento original a '0'
+                    movimiento_origen.sestado = '0'
+                    movimiento_origen.save()
+                    
+                    # Copiar los detalles del movimiento original al nuevo movimiento
+                    detalles_origen = DetalleMovimientoInventario.objects.filter(id_movimientoinventario=movimiento_origen)
+                    for detalle_origen in detalles_origen:
+                        DetalleMovimientoInventario.objects.create(
+                            id_movimientoinventario=nuevo_movimiento_reversion,
+                            id_articulo=detalle_origen.id_articulo,
+                            id_producto=detalle_origen.id_producto,
+                            cantidad=detalle_origen.cantidad,
+                            tipo=detalle_origen.tipo
+                        )
+                        
+                        # Actualizar el inventario
+                        producto_instance = detalle_origen.id_producto
+                        componente_instance = detalle_origen.id_articulo
 
-            return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
+                        inventario, created = Inventario.objects.get_or_create(
+                            id_bodega=movimiento_origen.id_bodega,
+                            id_producto=producto_instance,
+                            id_componente=componente_instance,
+                            defaults={'cantidad_disponible': detalle_origen.cantidad, 'costo_unitario': None}
+                        )
+
+                        if not created:
+                            inventario.cantidad_disponible += detalle_origen.cantidad
+                            inventario.save()
+
+                return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
         
