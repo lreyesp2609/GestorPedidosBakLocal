@@ -772,3 +772,30 @@ class CrearReversoFactura(View):
                 return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+class FacturasValidadasReportes(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén la lista de facturas validadas
+            facturas_validadas = Factura.objects.filter(
+                codigo_factura__isnull=False,
+                numero_factura_desde__isnull=False,
+                numero_factura_hasta__isnull=False
+            )
+
+            # Formatea los datos
+            data = []
+            for factura in facturas_validadas:
+                factura_data = {
+                    'codigo_factura': str(factura.codigo_factura) if factura.codigo_factura else None,
+                    'cliente_completo': f"{factura.id_cliente.snombre} {factura.id_cliente.capellido}" if factura.id_cliente else None,
+                    'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S') if factura.fecha_emision else None,
+                    'mesero_completo': f"{factura.id_mesero.nombre} {factura.id_mesero.apellido}" if factura.id_cliente else None,
+                    'total': str(factura.total),
+                    'iva': str(factura.iva) if factura.iva else None,
+                    'descuento': str(factura.descuento) if factura.descuento else None,
+                    'subtotal': str(factura.subtotal) if factura.subtotal else None,
+                    'a_pagar': str(factura.a_pagar) if factura.a_pagar else None,
+                }
+                data.append(factura_data)
+            return JsonResponse({'facturas_validadas': data})
+        except Exception as e:return JsonResponse({'error': str(e)}, status=500)
