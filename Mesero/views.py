@@ -1,5 +1,6 @@
 import json
 import traceback
+from django.db.models import F
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views import View
@@ -541,7 +542,8 @@ class ObtenerMeseroView(View):
             
             if id_usuario:
                 # Si se proporciona un ID de usuario, intenta obtener ese usuario
-                mesero = get_object_or_404(Meseros, id_cuenta=id_usuario)
+                cuenta = get_object_or_404(Cuenta, id_cuenta=id_usuario)
+                mesero = get_object_or_404(Meseros, id_cuenta=cuenta)
 
                 mesero_data = {
                     'id_mesero': mesero.id_mesero,
@@ -551,6 +553,7 @@ class ObtenerMeseroView(View):
                     'apellido': mesero.apellido,
                     'nombre': mesero.nombre,
                     'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
+                    'id_cuenta': mesero.id_cuenta.id_cuenta if mesero.id_cuenta else None,
                     'sestado': mesero.sestado,
                 }
 
@@ -670,6 +673,7 @@ class CrearReversoFactura(View):
                 
                 # Cambiar el estado del pedido a 'R' (Reversado)
                 pedido.estado_del_pedido = 'R'
+                pedido.estado_pago = 'Denegado'  # Actualizar el estado_pago a 'denegado'
                 pedido.save()
                 
                 # Iterar sobre los movimientos de inventario asociados con el pedido
@@ -717,4 +721,5 @@ class CrearReversoFactura(View):
                 return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+
         
