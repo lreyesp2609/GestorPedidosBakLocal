@@ -11,7 +11,7 @@ from datetime import datetime
 from Mesero.models import *
 from decimal import Decimal
 from Mesa.models import Mesas
-from Inventario.models import MovimientoInventario
+from Inventario.models import *
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidos(View):
@@ -631,37 +631,97 @@ class ListaFacturas(View):
             return JsonResponse({'error': str(e)}, status=500)
         
 
-
-        
 @method_decorator(csrf_exempt, name='dispatch')
-class CrearReversoFactura(View):
-    def post(self, request, id_factura):
+class DetalleFacturaView(View):
+    def get(self, request, id_factura, *args, **kwargs):
         try:
-            # Obtener la factura original
-            factura_original = get_object_or_404(Factura, id_factura=id_factura)
-            
-            # Obtener el motivo del reverso desde el cuerpo de la solicitud JSON
-            body_unicode = request.body.decode('utf-8')
-            body_data = json.loads(body_unicode)
-            motivo_reverso = body_data.get('motivo_reverso')
-            if not motivo_reverso:
-                return JsonResponse({'error': 'El motivo del reverso es obligatorio'}, status=400)
+            # Obtén el detalle de la factura
+            detalle_factura = DetalleFactura.objects.filter(id_factura=id_factura)
 
-            # Crear el reverso de la factura
-            reverso = NotaCredito.objects.create(
-                id_factura=factura_original.id_factura,
-                fechaemision=datetime.now(),
-                motivo=motivo_reverso,
-                estado='A'
-            )
+            # Formatea los datos
+            data = []
+            for detalle in detalle_factura:
+                detalle_data = {
+                    'id_detallefactura': detalle.id_detallefactura,
+                    'id_factura': detalle.id_factura.id_factura if detalle.id_factura else None,
+                    'id_producto': detalle.id_producto.id_producto if detalle.id_producto else None,
+                    'id_combo': detalle.id_combo.id_combo if detalle.id_combo else None,
+                    'cantidad': str(detalle.cantidad),
+                    'precio_unitario': str(detalle.precio_unitario),
+                    'descuento': str(detalle.descuento),
+                    'valor': str(detalle.valor)
+                }
+                data.append(detalle_data)
 
-            # Cambiar el estado de la factura original a 'R' (Reversada)
-            factura_original.estado = 'R'
-            factura_original.save()
-
-            return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
+            return JsonResponse({'detalle_factura': data})
         except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaFacturasConDetalles(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén la lista de facturas
+            facturas = Factura.objects.all()
+
+            # Formatea los datos de las facturas y sus detalles
+            data = []
+            for factura in facturas:
+                pedido = factura.id_pedido
+                estado_pago = pedido.estado_pago if pedido else None
+                tipo_de_pedido = pedido.tipo_de_pedido if pedido else None
+
+                factura_data = {
+                    'id_factura': factura.id_factura,
+                    'id_pedido': factura.id_pedido.id_pedido if factura.id_pedido else None,
+                    'id_cliente': factura.id_cliente.id_cliente if factura.id_cliente else None,
+                    'id_mesero': factura.id_mesero.id_mesero if factura.id_mesero else None,
+                    'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S') if factura.fecha_emision else None,
+                    'total': str(factura.total),
+                    'iva': str(factura.iva) if factura.iva else None,
+                    'descuento': str(factura.descuento) if factura.descuento else None,
+                    'subtotal': str(factura.subtotal) if factura.subtotal else None,
+                    'a_pagar': str(factura.a_pagar) if factura.a_pagar else None,
+                    'codigo_factura': factura.codigo_factura,
+                    'codigo_autorizacion': factura.codigo_autorizacion,
+                    'numero_factura_desde': factura.numero_factura_desde,
+                    'numero_factura_hasta': factura.numero_factura_hasta,
+                    'estado_pago': estado_pago,
+                    'tipo_de_pedido': tipo_de_pedido,
+                    'estado': factura.estado
+                }
+
+                # Obtén los detalles de la factura
+                detalles_factura = DetalleFactura.objects.filter(id_factura=factura.id_factura)
+                detalles_data = []
+                for detalle in detalles_factura:
+                    # Obtén el nombre del producto
+                    if detalle.id_producto:
+                        producto = Producto.objects.get(id_producto=detalle.id_producto.id_producto)
+                        nombre_producto = producto.nombreproducto
+                    else:
+                        nombre_producto = None
+
+                    detalle_data = {
+                        'id_detallefactura': detalle.id_detallefactura,
+                        'id_producto': detalle.id_producto.id_producto if detalle.id_producto else None,
+                        'id_combo': detalle.id_combo.id_combo if detalle.id_combo else None,
+                        'cantidad': str(detalle.cantidad),
+                        'precio_unitario': str(detalle.precio_unitario),
+                        'descuento': str(detalle.descuento),
+                        'valor': str(detalle.valor),
+                        'nombre_producto': nombre_producto  # Agregar el nombre del producto
+                    }
+                    detalles_data.append(detalle_data)
+
+                factura_data['detalles_factura'] = detalles_data
+                data.append(factura_data)
+
+            return JsonResponse({'facturas_con_detalles': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaNotasCredito(View):
     def get(self, request, id_notacredito, *args, **kwargs):
@@ -683,6 +743,93 @@ class ListaNotasCredito(View):
             return JsonResponse({'error': 'La nota de crédito especificada no existe'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+        
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class CrearReversoFactura(View):
+    def post(self, request, id_factura):
+        try:
+            with transaction.atomic():
+                # Obtener la factura original
+                factura_original = get_object_or_404(Factura, id_factura=id_factura)
+                
+                # Obtener el motivo del reverso desde el cuerpo de la solicitud JSON
+                body_unicode = request.body.decode('utf-8')
+                body_data = json.loads(body_unicode)
+                motivo_reverso = body_data.get('motivo_reverso')
+                if not motivo_reverso:
+                    return JsonResponse({'error': 'El motivo del reverso es obligatorio'}, status=400)
+
+                # Crear el reverso de la factura
+                reverso = NotaCredito.objects.create(
+                    id_factura=factura_original.id_factura,
+                    fechaemision=datetime.now(),
+                    motivo=motivo_reverso,
+                    estado='A'
+                )
+
+                # Cambiar el estado de la factura original a 'R' (Reversada)
+                factura_original.estado = 'R'
+                factura_original.save()
+                
+                # Obtener el pedido asociado con la factura
+                pedido = factura_original.id_pedido
+                
+                # Obtener los movimientos de inventario asociados con el pedido
+                movimientos_origen = MovimientoInventario.objects.filter(id_pedido=pedido)
+                
+                # Cambiar el estado del pedido a 'R' (Reversado)
+                pedido.estado_del_pedido = 'R'
+                pedido.estado_pago = 'Denegado'  # Actualizar el estado_pago a 'denegado'
+                pedido.save()
+                
+                # Iterar sobre los movimientos de inventario asociados con el pedido
+                for movimiento_origen in movimientos_origen:
+                    # Crear el movimiento de reversion
+                    nuevo_movimiento_reversion = MovimientoInventario.objects.create(
+                        id_cuenta=movimiento_origen.id_cuenta,
+                        id_pedido=movimiento_origen.id_pedido,
+                        id_bodega=movimiento_origen.id_bodega,
+                        tipomovimiento='R',
+                        sestado='1',  # Establecer el sestado como '1'
+                        observacion=f'Pedido reversado: {factura_original.codigo_factura}'
+                    )
+                    
+                    # Modificar el sestado del movimiento original a '0'
+                    movimiento_origen.sestado = '0'
+                    movimiento_origen.save()
+                    
+                    # Copiar los detalles del movimiento original al nuevo movimiento
+                    detalles_origen = DetalleMovimientoInventario.objects.filter(id_movimientoinventario=movimiento_origen)
+                    for detalle_origen in detalles_origen:
+                        DetalleMovimientoInventario.objects.create(
+                            id_movimientoinventario=nuevo_movimiento_reversion,
+                            id_articulo=detalle_origen.id_articulo,
+                            id_producto=detalle_origen.id_producto,
+                            cantidad=detalle_origen.cantidad,
+                            tipo=detalle_origen.tipo
+                        )
+                        
+                        # Actualizar el inventario
+                        producto_instance = detalle_origen.id_producto
+                        componente_instance = detalle_origen.id_articulo
+
+                        inventario, created = Inventario.objects.get_or_create(
+                            id_bodega=movimiento_origen.id_bodega,
+                            id_producto=producto_instance,
+                            id_componente=componente_instance,
+                            defaults={'cantidad_disponible': detalle_origen.cantidad, 'costo_unitario': None}
+                        )
+
+                        if not created:
+                            inventario.cantidad_disponible += detalle_origen.cantidad
+                            inventario.save()
+
+                return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+
 class FacturasValidadasReportes(View):
     def get(self, request, *args, **kwargs):
         try:
