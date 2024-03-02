@@ -683,3 +683,82 @@ class ListaNotasCredito(View):
             return JsonResponse({'error': 'La nota de crédito especificada no existe'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+class FacturasValidadasReportes(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén la lista de facturas validadas
+            facturas_validadas = Factura.objects.filter(
+                codigo_factura__isnull=False,
+                numero_factura_desde__isnull=False,
+                numero_factura_hasta__isnull=False
+            )
+
+            # Formatea los datos
+            data = []
+            for factura in facturas_validadas:
+                factura_data = {
+                    'codigo_factura': str(factura.codigo_factura) if factura.codigo_factura else None,
+                    'cliente_completo': f"{factura.id_cliente.snombre} {factura.id_cliente.capellido}" if factura.id_cliente else None,
+                    'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S') if factura.fecha_emision else None,
+                    'mesero_completo': f"{factura.id_mesero.nombre} {factura.id_mesero.apellido}" if factura.id_cliente else None,
+                    'total': str(factura.total),
+                    'iva': str(factura.iva) if factura.iva else None,
+                    'descuento': str(factura.descuento) if factura.descuento else None,
+                    'subtotal': str(factura.subtotal) if factura.subtotal else None,
+                    'a_pagar': str(factura.a_pagar) if factura.a_pagar else None,
+                }
+                data.append(factura_data)
+            return JsonResponse({'facturas_validadas': data})
+        except Exception as e:return JsonResponse({'error': str(e)}, status=500)
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaPedidosReportes(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos = Pedidos.objects.filter(estado_pago='Pagado').exclude(factura__id_mesero=None)
+
+            # Formatea los datos
+            data = []
+            for pedido in pedidos:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto_data = {
+                        'id_producto': detalle_pedido.id_producto.id_producto,
+                        'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                    }
+                    detalle_pedido_data.append(producto_data)
+
+                # Obtén el ID del mesero asociado al pedido
+                id_mesero = pedido.factura_set.first().id_mesero.id_mesero
+
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'id_mesero': id_mesero,  # Agregar el ID del mesero al pedido
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+
+                data.append(pedido_data)
+
+            return JsonResponse({'pedidos': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
