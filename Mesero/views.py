@@ -1,6 +1,5 @@
 import json
 import traceback
-from django.db.models import F
 from django.shortcuts import render
 from django.http import JsonResponse
 from django.views import View
@@ -12,7 +11,7 @@ from datetime import datetime
 from Mesero.models import *
 from decimal import Decimal
 from Mesa.models import Mesas
-from Inventario.models import *
+from Inventario.models import MovimientoInventario
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidos(View):
@@ -189,7 +188,7 @@ class TomarPedido(View):
                 cliente_instance = get_object_or_404(Clientes, id_cliente=id_cliente_id)
 
                 estado_pago = "En Revisión"
-
+                mesero_instance = get_object_or_404(Meseros, id_mesero=id_mesero)
                 nuevo_pedido = Pedidos.objects.create(
                     id_cliente=cliente_instance,
                     precio=0,
@@ -201,9 +200,10 @@ class TomarPedido(View):
                     estado_del_pedido=estado_del_pedido,
                     estado_pago=estado_pago,
                     observacion_del_cliente=observacion_del_cliente,
+                    id_sucursal=mesero_instance.id_sucursal
                 )
 
-                mesero_instance = get_object_or_404(Meseros, id_mesero=id_mesero)
+                
                 mesa_instance = get_object_or_404(Mesas, id_mesa=id_mesa)
                 Pedidosmesa.objects.create(
                     id_mesero=mesero_instance,
@@ -347,6 +347,7 @@ class TomarPedidoSinMesa(View):
                     fecha_entrega=fecha_entrega,
                     estado_del_pedido=estado_del_pedido,
                     observacion_del_cliente=observacion_del_cliente,
+                    id_sucursal=id_sucursal
                 )
                 mesero_instance = get_object_or_404(Meseros, id_mesero=id_mesero)
                 detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
@@ -477,10 +478,6 @@ def ver_factura(request, id_pedido):
         print('aver3')
         # Obtener la numeración desde el modelo Codigosri
         numeracion = f"{factura.numero_factura_desde}-{factura.numero_factura_hasta}"
-        
-        punto_facturacion = Puntofacturacion.objects.get(id_puntofacturacion=factura.id_punto_facturacion_id)
-        mesero = Meseros.objects.get(id_mesero=punto_facturacion.id_mesero.id_mesero)  # Obtener el objeto del mesero
-
         print('aver4')
         factura_data = {
             'id_factura': factura.id_factura,
@@ -499,9 +496,6 @@ def ver_factura(request, id_pedido):
             'tipo_de_pedido': tipo_de_pedido,
             'metodo_de_pago': metodo_de_pago,  
             'detalles_factura': detalles_factura_list,
-            'nombre_mesero': mesero.nombre,  # Agregar nombre del mesero
-            'apellido_mesero': mesero.apellido,  # Agregar apellido del mesero
-            'ruc': punto_facturacion.ruc,  # Agregar RUC del punto de facturación
         }
         print('aver5')
         return JsonResponse(factura_data)
@@ -597,6 +591,7 @@ class ListaMeseros(View):
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
         
+        
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaFacturas(View):
@@ -636,166 +631,36 @@ class ListaFacturas(View):
             return JsonResponse({'facturas': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
-@method_decorator(csrf_exempt, name='dispatch')
-class DetalleFacturaView(View):
-    def get(self, request, id_factura, *args, **kwargs):
-        try:
-            # Obtén el detalle de la factura
-            detalle_factura = DetalleFactura.objects.filter(id_factura=id_factura)
-
-            # Formatea los datos
-            data = []
-            for detalle in detalle_factura:
-                detalle_data = {
-                    'id_detallefactura': detalle.id_detallefactura,
-                    'id_factura': detalle.id_factura.id_factura if detalle.id_factura else None,
-                    'id_producto': detalle.id_producto.id_producto if detalle.id_producto else None,
-                    'id_combo': detalle.id_combo.id_combo if detalle.id_combo else None,
-                    'cantidad': str(detalle.cantidad),
-                    'precio_unitario': str(detalle.precio_unitario),
-                    'descuento': str(detalle.descuento),
-                    'valor': str(detalle.valor)
-                }
-                data.append(detalle_data)
-
-            return JsonResponse({'detalle_factura': data})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
-
-@method_decorator(csrf_exempt, name='dispatch')
-class ListaNotasCredito(View):
-    def get(self, request, *args, **kwargs):
-        try:
-            # Obtén la lista de notas de crédito
-            notas_credito = NotaCredito.objects.all()
-
-            # Formatea los datos
-            data = []
-            for nota_credito in notas_credito:
-                nota_credito_data = {
-                    'id_notacredito': nota_credito.id_notacredito,
-                    'id_factura': nota_credito.id_factura,
-                    'fecha_emision': nota_credito.fechaemision.strftime('%Y-%m-%d %H:%M:%S') if nota_credito.fechaemision else None,
-                    'motivo': nota_credito.motivo,
-                    'estado': nota_credito.estado
-                }
-                data.append(nota_credito_data)
-
-            return JsonResponse({'notas_credito': data})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=500)
-
         
+
+
         
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearReversoFactura(View):
     def post(self, request, id_factura):
         try:
-            with transaction.atomic():
-                # Obtener la factura original
-                factura_original = get_object_or_404(Factura, id_factura=id_factura)
-                
-                # Obtener el motivo del reverso desde el cuerpo de la solicitud JSON
-                body_unicode = request.body.decode('utf-8')
-                body_data = json.loads(body_unicode)
-                motivo_reverso = body_data.get('motivo_reverso')
-                if not motivo_reverso:
-                    return JsonResponse({'error': 'El motivo del reverso es obligatorio'}, status=400)
+            # Obtener la factura original
+            factura_original = get_object_or_404(Factura, id_factura=id_factura)
+            
+            # Obtener el motivo del reverso desde el cuerpo de la solicitud JSON
+            body_unicode = request.body.decode('utf-8')
+            body_data = json.loads(body_unicode)
+            motivo_reverso = body_data.get('motivo_reverso')
+            if not motivo_reverso:
+                return JsonResponse({'error': 'El motivo del reverso es obligatorio'}, status=400)
 
-                # Crear el reverso de la factura
-                reverso = NotaCredito.objects.create(
-                    id_factura=factura_original.id_factura,
-                    fechaemision=datetime.now(),
-                    motivo=motivo_reverso,
-                    estado='A'
-                )
-
-                # Cambiar el estado de la factura original a 'R' (Reversada)
-                factura_original.estado = 'R'
-                factura_original.save()
-                
-                # Obtener el pedido asociado con la factura
-                pedido = factura_original.id_pedido
-                
-                # Obtener los movimientos de inventario asociados con el pedido
-                movimientos_origen = MovimientoInventario.objects.filter(id_pedido=pedido)
-                
-                # Cambiar el estado del pedido a 'R' (Reversado)
-                pedido.estado_del_pedido = 'R'
-                pedido.estado_pago = 'Denegado'  # Actualizar el estado_pago a 'denegado'
-                pedido.save()
-                
-                # Iterar sobre los movimientos de inventario asociados con el pedido
-                for movimiento_origen in movimientos_origen:
-                    # Crear el movimiento de reversion
-                    nuevo_movimiento_reversion = MovimientoInventario.objects.create(
-                        id_cuenta=movimiento_origen.id_cuenta,
-                        id_pedido=movimiento_origen.id_pedido,
-                        id_bodega=movimiento_origen.id_bodega,
-                        tipomovimiento='R',
-                        sestado='1',  # Establecer el sestado como '1'
-                        observacion=f'Pedido reversado: {factura_original.codigo_factura}'
-                    )
-                    
-                    # Modificar el sestado del movimiento original a '0'
-                    movimiento_origen.sestado = '0'
-                    movimiento_origen.save()
-                    
-                    # Copiar los detalles del movimiento original al nuevo movimiento
-                    detalles_origen = DetalleMovimientoInventario.objects.filter(id_movimientoinventario=movimiento_origen)
-                    for detalle_origen in detalles_origen:
-                        DetalleMovimientoInventario.objects.create(
-                            id_movimientoinventario=nuevo_movimiento_reversion,
-                            id_articulo=detalle_origen.id_articulo,
-                            id_producto=detalle_origen.id_producto,
-                            cantidad=detalle_origen.cantidad,
-                            tipo=detalle_origen.tipo
-                        )
-                        
-                        # Actualizar el inventario
-                        producto_instance = detalle_origen.id_producto
-                        componente_instance = detalle_origen.id_articulo
-
-                        inventario, created = Inventario.objects.get_or_create(
-                            id_bodega=movimiento_origen.id_bodega,
-                            id_producto=producto_instance,
-                            id_componente=componente_instance,
-                            defaults={'cantidad_disponible': detalle_origen.cantidad, 'costo_unitario': None}
-                        )
-
-                        if not created:
-                            inventario.cantidad_disponible += detalle_origen.cantidad
-                            inventario.save()
-
-                return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
-        except Exception as e:
-            return JsonResponse({'error': str(e)}, status=400)
-class FacturasValidadasReportes(View):
-    def get(self, request, *args, **kwargs):
-        try:
-            # Obtén la lista de facturas validadas
-            facturas_validadas = Factura.objects.filter(
-                codigo_factura__isnull=False,
-                numero_factura_desde__isnull=False,
-                numero_factura_hasta__isnull=False
+            # Crear el reverso de la factura
+            reverso = NotaCredito.objects.create(
+                id_factura=factura_original.id_factura,
+                fechaemision=datetime.now(),
+                motivo=motivo_reverso,
+                estado='A'
             )
 
-            # Formatea los datos
-            data = []
-            for factura in facturas_validadas:
-                factura_data = {
-                    'codigo_factura': str(factura.codigo_factura) if factura.codigo_factura else None,
-                    'cliente_completo': f"{factura.id_cliente.snombre} {factura.id_cliente.capellido}" if factura.id_cliente else None,
-                    'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S') if factura.fecha_emision else None,
-                    'mesero_completo': f"{factura.id_mesero.nombre} {factura.id_mesero.apellido}" if factura.id_cliente else None,
-                    'total': str(factura.total),
-                    'iva': str(factura.iva) if factura.iva else None,
-                    'descuento': str(factura.descuento) if factura.descuento else None,
-                    'subtotal': str(factura.subtotal) if factura.subtotal else None,
-                    'a_pagar': str(factura.a_pagar) if factura.a_pagar else None,
-                }
-                data.append(factura_data)
-            return JsonResponse({'facturas_validadas': data})
-        except Exception as e:return JsonResponse({'error': str(e)}, status=500)
+            # Cambiar el estado de la factura original a 'R' (Reversada)
+            factura_original.estado = 'R'
+            factura_original.save()
+
+            return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
