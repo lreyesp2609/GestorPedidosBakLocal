@@ -248,3 +248,73 @@ class VerCombos(View):
             return JsonResponse({'combos': combos_list}, safe=False)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+class VerCombosTodo(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            combos = Combo.objects.all()
+            combos_list = []
+
+            for combo in combos:
+                imagen_base64 = None
+                productos_list = []
+
+                if combo.imagenc:
+                    try:
+                        byteImg = base64.b64decode(combo.imagenc)
+                        imagen_base64 = base64.b64encode(byteImg).decode('utf-8')
+                    except Exception as img_error:
+                        print(f"Error al procesar imagen: {str(img_error)}")
+                combo_info = {
+                    'id_combo': combo.id_combo,
+                    'nombrecb': combo.nombrecb,
+                    'nombrecat': combo.id_catcombo.catnombre,
+                    'descripcioncombo': combo.descripcioncombo,
+                    'preciounitario': combo.preciounitario,
+                    'imagen': imagen_base64,
+                    'puntos': combo.puntoscb,
+                    'iva': combo.iva,
+                    'ice': combo.ice,
+                    'irbpnr': combo.irbpnr,
+                    'productos': productos_list,
+                }
+                combos_list.append(combo_info)
+
+            return JsonResponse({'combos': combos_list}, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+class VerCombosPorCategoria(View):
+    def get(self, request, categoria_id, *args, **kwargs):
+        try:
+            combos = Combo.objects.filter(id_catcombo=categoria_id)
+            combos_list = []
+
+            for combo in combos:
+                imagen_base64 = None
+                productos_list = []
+
+                if combo.imagenc:
+                    try:
+                        byteImg = base64.b64decode(combo.imagenc)
+                        imagen_base64 = base64.b64encode(byteImg).decode('utf-8')
+                    except Exception as img_error:
+                        print(f"Error al procesar imagen: {str(img_error)}")
+                
+                combo_info = {
+                    'id_combo': combo.id_combo,
+                    'nombrecb': combo.nombrecb,
+                    'nombrecat': combo.id_catcombo.catnombre,
+                    'descripcioncombo': combo.descripcioncombo,
+                    'preciounitario': combo.preciounitario,
+                    'imagen': imagen_base64,
+                    'puntos': combo.puntoscb,
+                    'iva': combo.iva,
+                    'ice': combo.ice,
+                    'irbpnr': combo.irbpnr,
+                    'productos': productos_list,
+                }
+                combos_list.append(combo_info)
+
+            return JsonResponse({'combos': combos_list}, safe=False)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

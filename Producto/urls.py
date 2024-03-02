@@ -30,4 +30,6 @@ urlpatterns = [
     path('fabricarproducto/', FabricarProducto.as_view(), name='FabricarProducto'),
     path('procesar_productos/', procesar_productos.as_view(), name='procesar_productos'),
     path('EliminarProducto/', EliminarProducto.as_view(), name='EliminarProducto'),
+    path('listar-productos/categoria/<int:categoria_id>/', ListarProductosPorCategoria.as_view(), name='listar_productos_por_categoria'),
+    path('listar-productos/', ListarTodosLosProductos.as_view(), name='listar_productos_todos'),
 ]

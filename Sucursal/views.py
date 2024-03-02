@@ -398,3 +398,57 @@ class crearGeosector(View):
             return JsonResponse({'mensaje': 'Geosector y sucursal creados con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+class ListarSucursalReporte(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            sucursales = Sucursales.objects.all().order_by('id_sucursal')
+            paginator = Paginator(sucursales, 200) 
+            page = request.POST.get('pageSize')
+
+            try:
+                sucursales_list = paginator.page(page)
+            except PageNotAnInteger:
+                sucursales_list = paginator.page(1)
+            except EmptyPage:
+                sucursales_list = paginator.page(paginator.num_pages)
+
+            serialized_sucursales = []
+            for sucursal in sucursales_list:
+                ubicacion_info = {
+                    'direccion': sucursal.sdireccion,
+                }
+
+                horario_info = None
+                if sucursal.id_horarios_id:
+                    horario = Horariossemanales.objects.get(id_horarios=sucursal.id_horarios.id_horarios)
+                    detalles_horario = DetalleHorariosSemanales.objects.filter(id_horarios=horario)
+                    horario_info = {
+                        'nombre': horario.nombreh,
+                    }
+
+                sucursal_info = {
+                    'nombre': sucursal.snombre,
+                    'apertura': sucursal.fsapertura.strftime('%Y-%m-%d') if sucursal.fsapertura else None,
+                    'estado': sucursal.sestado,
+                    'direccion': ubicacion_info['direccion'],
+                    'numcelular': sucursal.stelefono,
+                    'total_empleados': self.cantidaEmp(sucursal.id_sucursal),
+                }
+                serialized_sucursales.append(sucursal_info)
+            return JsonResponse({'sucursales': serialized_sucursales}, safe=False)
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=500)
+
+    def cantidaEmp(self, ids):
+        if ids:
+            jefes_cocina = JefeCocina.objects.filter(id_sucursal=ids).count()
+            motorizados = Motorizado.objects.filter(id_sucursal=ids).count()
+            administradores = Administrador.objects.filter(id_sucursal=ids).count()
+            meseros = Mesero.objects.filter(id_sucursal=ids).count()
+        else:
+            jefes_cocina = JefeCocina.objects.all().count()
+            motorizados = Motorizado.objects.all().count()
+            administradores = Administrador.objects.all().count()
+            meseros = Mesero.objects.all().count()
+        return jefes_cocina + motorizados + administradores + meseros

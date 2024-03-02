@@ -1141,3 +1141,115 @@ class ListaConversiones(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+class ListarProductosPorCategoria(View):
+    def get(self, request, categoria_id, *args, **kwargs):
+        try:
+            # Parámetros de paginación y búsqueda
+            page = int(request.GET.get('page', 1))
+            size = int(request.GET.get('size', 10))
+            search = request.GET.get('search', '')
+
+            # Filtrar productos por término de búsqueda y categoría
+            productos = Producto.objects.filter(nombreproducto__icontains=search,
+                                                 id_categoria=categoria_id,
+                                                 sestado=1)
+
+            # Configurar la paginación
+            paginator = Paginator(productos, size)
+
+            try:
+                # Obtener la página actual
+                productos_pagina = paginator.page(page)
+            except EmptyPage:
+                # Si la página está fuera de rango, devolver una lista vacía
+                productos_pagina = []
+
+            # Inicializar la lista de productos
+            lista_productos = []
+
+            for producto in productos_pagina:
+                imagen_base64 = None
+                if producto.imagenp:
+                    try:
+                        byteImg = base64.b64decode(producto.imagenp)
+                        imagen_base64 = base64.b64encode(byteImg).decode('utf-8')
+                    except Exception as img_error:
+                        print(f"Error al procesar imagen: {str(img_error)}")
+                
+                # Agregar los datos del producto a la lista de productos
+                datos_producto = {
+                    'id_producto': producto.id_producto,
+                    'catnombre': producto.id_categoria.catnombre,
+                    'id_um': producto.id_um.idum,
+                    'puntosp': producto.puntosp,
+                    'codprincipal': producto.codprincipal,
+                    'nombreproducto': producto.nombreproducto,
+                    'descripcionproducto': producto.descripcionproducto,
+                    'preciounitario': str(producto.preciounitario),
+                    'iva': producto.iva,
+                    'ice': producto.ice,
+                    'irbpnr': producto.irbpnr,
+                    'imagenp': imagen_base64,
+                }
+                lista_productos.append(datos_producto)
+
+            return JsonResponse({'productos': lista_productos, 'total': paginator.count}, safe=False)
+
+        except Exception as e:
+            # Manejar errores aquí
+            return JsonResponse({'error': str(e)}, status=500)
+class ListarTodosLosProductos(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Parámetros de paginación y búsqueda
+            page = int(request.GET.get('page', 1))
+            size = int(request.GET.get('size', 10))
+            search = request.GET.get('search', '')
+
+            # Filtrar productos por término de búsqueda
+            productos = Producto.objects.filter(nombreproducto__icontains=search, sestado=1)
+
+            # Configurar la paginación
+            paginator = Paginator(productos, size)
+
+            try:
+                # Obtener la página actual
+                productos_pagina = paginator.page(page)
+            except EmptyPage:
+                # Si la página está fuera de rango, devolver una lista vacía
+                productos_pagina = []
+
+            # Inicializar la lista de productos
+            lista_productos = []
+
+            for producto in productos_pagina:
+                imagen_base64 = None
+                if producto.imagenp:
+                    try:
+                        byteImg = base64.b64decode(producto.imagenp)
+                        imagen_base64 = base64.b64encode(byteImg).decode('utf-8')
+                    except Exception as img_error:
+                        print(f"Error al procesar imagen: {str(img_error)}")
+                
+                # Agregar los datos del producto a la lista de productos
+                datos_producto = {
+                    'id_producto': producto.id_producto,
+                    'catnombre': producto.id_categoria.catnombre,
+                    'id_um': producto.id_um.idum,
+                    'puntosp': producto.puntosp,
+                    'codprincipal': producto.codprincipal,
+                    'nombreproducto': producto.nombreproducto,
+                    'descripcionproducto': producto.descripcionproducto,
+                    'preciounitario': str(producto.preciounitario),
+                    'iva': producto.iva,
+                    'ice': producto.ice,
+                    'irbpnr': producto.irbpnr,
+                    'imagenp': imagen_base64,
+                }
+                lista_productos.append(datos_producto)
+
+            return JsonResponse({'productos': lista_productos, 'total': paginator.count}, safe=False)
+
+        except Exception as e:
+            # Manejar errores aquí
+            return JsonResponse({'error': str(e)}, status=500)

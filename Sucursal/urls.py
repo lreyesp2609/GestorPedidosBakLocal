@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import SucursalesListView, Crearsucursal,sucursalExist,actdesSucursal,Editarubicacion,cargarSucursal,EditarSucursal,crearGeosector
+from .views import ListarSucursalReporte, SucursalesListView, Crearsucursal,sucursalExist,actdesSucursal,Editarubicacion,cargarSucursal,EditarSucursal,crearGeosector
 
 urlpatterns = [
     path('sucusarleslist/', SucursalesListView.as_view(), name='SucursalesListView'),
@@ -9,5 +9,6 @@ urlpatterns = [
     path('editarubicacion/', Editarubicacion.as_view(), name='Editarubicacion'),
     path('cargarSucursal/<int:id_sucursal>', cargarSucursal.as_view(), name='cargarSucursal'),
     path('EditarSucursal/<int:id_sucursal>', EditarSucursal.as_view(), name='EditarSucursal'),
-    path('crearGeosector/', crearGeosector.as_view(), name='crearGeosector')
+    path('crearGeosector/', crearGeosector.as_view(), name='crearGeosector'),
+    path('listar-sucursales/', ListarSucursalReporte.as_view(), name='ListarSucursales'),
 ]
