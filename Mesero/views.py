@@ -636,6 +636,57 @@ class ListaFacturas(View):
             return JsonResponse({'facturas': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class DetalleFacturaView(View):
+    def get(self, request, id_factura, *args, **kwargs):
+        try:
+            # Obtén el detalle de la factura
+            detalle_factura = DetalleFactura.objects.filter(id_factura=id_factura)
+
+            # Formatea los datos
+            data = []
+            for detalle in detalle_factura:
+                detalle_data = {
+                    'id_detallefactura': detalle.id_detallefactura,
+                    'id_factura': detalle.id_factura.id_factura if detalle.id_factura else None,
+                    'id_producto': detalle.id_producto.id_producto if detalle.id_producto else None,
+                    'id_combo': detalle.id_combo.id_combo if detalle.id_combo else None,
+                    'cantidad': str(detalle.cantidad),
+                    'precio_unitario': str(detalle.precio_unitario),
+                    'descuento': str(detalle.descuento),
+                    'valor': str(detalle.valor)
+                }
+                data.append(detalle_data)
+
+            return JsonResponse({'detalle_factura': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaNotasCredito(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén la lista de notas de crédito
+            notas_credito = NotaCredito.objects.all()
+
+            # Formatea los datos
+            data = []
+            for nota_credito in notas_credito:
+                nota_credito_data = {
+                    'id_notacredito': nota_credito.id_notacredito,
+                    'id_factura': nota_credito.id_factura,
+                    'fecha_emision': nota_credito.fechaemision.strftime('%Y-%m-%d %H:%M:%S') if nota_credito.fechaemision else None,
+                    'motivo': nota_credito.motivo,
+                    'estado': nota_credito.estado
+                }
+                data.append(nota_credito_data)
+
+            return JsonResponse({'notas_credito': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
         
         
 @method_decorator(csrf_exempt, name='dispatch')
