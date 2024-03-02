@@ -14,8 +14,9 @@ urlpatterns = [
     path('lista_facturas/', ListaFacturas.as_view(), name='lista_facturas'),
     path('crear_reverso_factura/<int:id_factura>/', CrearReversoFactura.as_view(), name='crear_reverso_factura'),
     path('validar_facturas/', FacturasValidadasReportes.as_view(), name='validar_facturas'),
-    path('listapedidospagado/', ListaPedidosReportes.as_view(), name='listapagados'),
     path('listar_notas_credito/<int:id_notacredito>/', ListaNotasCredito.as_view(), name='listar_notas_credito'),
     path('detalle_factura/<int:id_factura>/', DetalleFacturaView.as_view(), name='detalle_factura'),
     path('lista_facturas_con_detalles/<int:id_factura>/', ListaFacturasConDetalles.as_view(), name='lista_facturas_con_detalles'),
+    path('listapedidospagados/', ListaTodosPedidosReportes.as_view(), name='listatodospagados'),
+    path('listapedidospagado/<int:id_mesero>/', ListaPedidosReportes.as_view(), name='listapagados'),
 ]
