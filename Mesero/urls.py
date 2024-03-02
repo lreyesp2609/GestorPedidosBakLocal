@@ -13,7 +13,6 @@ urlpatterns = [
     path('listar_meseros/', ListaMeseros.as_view(), name='listar_meseros'),
     path('lista_facturas/', ListaFacturas.as_view(), name='lista_facturas'),
     path('crear_reverso_factura/<int:id_factura>/', CrearReversoFactura.as_view(), name='crear_reverso_factura'),
-    path('validar_facturas/', FacturasValidadasReportes.as_view(), name='validar_facturas'),
 ]
 
 
