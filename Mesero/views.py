@@ -535,9 +535,7 @@ class ObtenerMeseroView(View):
             id_usuario = kwargs.get('id_usuario')
             
             if id_usuario:
-                # Si se proporciona un ID de usuario, intenta obtener ese usuario
-                cuenta = get_object_or_404(Cuenta, id_cuenta=id_usuario)
-                mesero = get_object_or_404(Meseros, id_cuenta=cuenta)
+                mesero = get_object_or_404(Meseros, id_cuenta=id_usuario)
 
                 mesero_data = {
                     'id_mesero': mesero.id_mesero,
@@ -664,3 +662,24 @@ class CrearReversoFactura(View):
             return JsonResponse({'mensaje': 'Reverso de factura creado con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaNotasCredito(View):
+    def get(self, request, id_notacredito, *args, **kwargs):
+        try:
+            # Obtén la nota de crédito específica
+            nota_credito = NotaCredito.objects.get(id_notacredito=id_notacredito)
+
+            # Formatea los datos
+            nota_credito_data = {
+                'id_notacredito': nota_credito.id_notacredito,
+                'id_factura': nota_credito.id_factura,
+                'fecha_emision': nota_credito.fechaemision.strftime('%Y-%m-%d %H:%M:%S') if nota_credito.fechaemision else None,
+                'motivo': nota_credito.motivo,
+                'estado': nota_credito.estado
+            }
+
+            return JsonResponse({'nota_credito': nota_credito_data})
+        except NotaCredito.DoesNotExist:
+            return JsonResponse({'error': 'La nota de crédito especificada no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
