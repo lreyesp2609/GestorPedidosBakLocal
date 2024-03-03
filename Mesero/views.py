@@ -778,18 +778,25 @@ class FacturaDetallesNotaCredito(View):
             detalles_factura = DetalleFactura.objects.filter(id_factura=factura.id_factura)
             detalles_data = []
             for detalle in detalles_factura:
-                detalle_data = {
-                    'id_detallefactura': detalle.id_detallefactura,
-                    'id_producto': detalle.id_producto.id_producto if detalle.id_producto else None,
-                    'id_combo': detalle.id_combo.id_combo if detalle.id_combo else None,
-                    'cantidad': str(detalle.cantidad),
-                    'precio_unitario': str(detalle.precio_unitario),
-                    'descuento': str(detalle.descuento),
-                    'valor': str(detalle.valor)
-                }
-                detalles_data.append(detalle_data)
+                    # Obtén el nombre del producto
+                    if detalle.id_producto:
+                        producto = Producto.objects.get(id_producto=detalle.id_producto.id_producto)
+                        nombre_producto = producto.nombreproducto
+                    else:
+                        nombre_producto = None
 
-            factura_data['detalles_factura'] = detalles_data
+                    detalle_data = {
+                        'id_detallefactura': detalle.id_detallefactura,
+                        'id_producto': detalle.id_producto.id_producto if detalle.id_producto else None,
+                        'id_combo': detalle.id_combo.id_combo if detalle.id_combo else None,
+                        'cantidad': str(detalle.cantidad),
+                        'precio_unitario': str(detalle.precio_unitario),
+                        'descuento': str(detalle.descuento),
+                        'valor': str(detalle.valor),
+                        'nombre_producto': nombre_producto  # Agregar el nombre del producto
+                    }
+                    detalles_data.append(detalle_data)
+                    factura_data['detalles_factura'] = detalles_data
 
             # Obtén los detalles de la nota de crédito asociada (si existe)
             nota_credito = NotaCredito.objects.filter(id_factura=id_factura).first()
