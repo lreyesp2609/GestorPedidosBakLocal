@@ -12,6 +12,7 @@ from Mesero.models import *
 from decimal import Decimal
 from Mesa.models import Mesas
 from Inventario.models import *
+from .models import Sucursales
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidos(View):
@@ -888,6 +889,7 @@ class ListaPedidosReportes(View):
                         'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
                     },
                     'id_mesero': id_mesero,
+                    'nombre_mesero': pedido.factura_set.first().id_mesero.nombre + ' ' + pedido.factura_set.first().id_mesero.apellido,
                     'precio': pedido.precio,
                     'tipo_de_pedido': pedido.tipo_de_pedido,
                     'metodo_de_pago': pedido.metodo_de_pago,
@@ -939,7 +941,8 @@ class ListaTodosPedidosReportes(View):
                         'capellido': pedido.id_cliente.capellido,
                         'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
                     },
-                    'id_mesero': id_mesero,  # Agregar el ID del mesero al pedido
+                    'id_mesero': id_mesero,  
+                    'nombre_mesero': pedido.factura_set.first().id_mesero.nombre + ' ' + pedido.factura_set.first().id_mesero.apellido,
                     'precio': pedido.precio,
                     'tipo_de_pedido': pedido.tipo_de_pedido,
                     'metodo_de_pago': pedido.metodo_de_pago,
@@ -953,6 +956,578 @@ class ListaTodosPedidosReportes(View):
 
                 data.append(pedido_data)
 
+            return JsonResponse({'pedidos': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class ListaPedidosSucursalReportes(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos = Pedidos.objects.filter(estado_pago='Pagado')
+
+            # Obtén la lista de meseros
+            meseros = Meseros.objects.all()
+            meseros_dict = {mesero.id_mesero: mesero for mesero in meseros}
+
+            # Obtén la lista de sucursales
+            sucursales = Sucursales.objects.all()
+            sucursales_dict = {sucursal.id_sucursal: sucursal for sucursal in sucursales}
+
+            # Formatea los datos
+            data = []
+            for pedido in pedidos:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto_data = {
+                        'id_producto': detalle_pedido.id_producto.id_producto,
+                        'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                    }
+                    detalle_pedido_data.append(producto_data)
+
+                # Obtén el ID del mesero asociado al pedido (si existe)
+                factura = pedido.factura_set.first()
+                id_mesero = factura.id_mesero.id_mesero if factura and factura.id_mesero else None
+                mesero_info = None
+                if id_mesero:
+                    mesero = meseros_dict[id_mesero]
+                    mesero_info = {
+                        'id_mesero': mesero.id_mesero,
+                        'nombre': mesero.nombre,
+                        'apellido': mesero.apellido,
+                        'telefono': mesero.telefono,
+                        'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
+                        'sestado': mesero.sestado,
+                        'id_sucursal': mesero.id_sucursal.id_sucursal,  # Agregar el ID de la sucursal al mesero
+                        'nombre_sucursal': mesero.id_sucursal.snombre,  # Agregar el nombre de la sucursal al mesero
+                    }
+
+                # Obtén el id de la sucursal del pedido
+                id_sucursal_pedido = None
+                nombre_sucursal_pedido = None
+                if pedido.id_Sucursal:
+                    id_sucursal_pedido = pedido.id_Sucursal.id_sucursal
+                    nombre_sucursal_pedido = pedido.id_Sucursal.snombre
+                elif mesero_info and 'id_sucursal' in mesero_info:
+                    id_sucursal_pedido = mesero_info['id_sucursal']
+                    nombre_sucursal_pedido = sucursales_dict[id_sucursal_pedido].snombre
+
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'id_sucursal': id_sucursal_pedido,
+                    'nombre_sucursal': nombre_sucursal_pedido,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'mesero': mesero_info,
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+
+                data.append(pedido_data)
+
+            return JsonResponse({'pedidos': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaPedidosIdSucuReportes(View):
+    def get(self, request, id_sucursal, *args, **kwargs):
+        try:
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos_mesero = Pedidos.objects.filter(
+                estado_pago='Pagado',
+                factura__id_mesero__id_sucursal=id_sucursal
+            )
+
+            pedidos_pedido = Pedidos.objects.filter(
+                estado_pago='Pagado',
+                id_Sucursal__id_sucursal=id_sucursal
+            )
+
+            # Formatea los datos
+            data = []
+            
+            # Obtener el objeto Sucursal
+            sucursal = Sucursales.objects.get(id_sucursal=id_sucursal)
+            nombre_sucursal = sucursal.snombre
+
+            for pedido in pedidos_mesero:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto_data = {
+                        'id_producto': detalle_pedido.id_producto.id_producto,
+                        'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                    }
+                    detalle_pedido_data.append(producto_data)
+
+                # Obtén el ID del mesero asociado al pedido
+                factura = pedido.factura_set.first()
+                id_mesero = factura.id_mesero.id_mesero if factura and factura.id_mesero else None
+                mesero_info = None
+                if id_mesero:
+                    mesero = Meseros.objects.get(id_mesero=id_mesero)
+                    mesero_info = {
+                        'id_mesero': mesero.id_mesero,
+                        'nombre': mesero.nombre,
+                        'apellido': mesero.apellido,
+                        'telefono': mesero.telefono,
+                        'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
+                        'sestado': mesero.sestado,
+                        'id_sucursal': mesero.id_sucursal.id_sucursal,
+                    }
+
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'id_sucursal': id_sucursal,
+                    'nombre_sucursal': nombre_sucursal,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'mesero': mesero_info,
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+
+                data.append(pedido_data)
+
+            for pedido in pedidos_pedido:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto_data = {
+                        'id_producto': detalle_pedido.id_producto.id_producto,
+                        'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                    }
+                    detalle_pedido_data.append(producto_data)
+
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'id_sucursal': id_sucursal,
+                    'nombre_sucursal': nombre_sucursal,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'mesero': None,
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+
+                data.append(pedido_data)
+
+            return JsonResponse({'pedidos': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class ListaPedidosProductoReportes(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén los parámetros de la solicitud (si los hay)
+            id_producto = request.GET.get('id_producto')
+            
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos = Pedidos.objects.filter(estado_pago='Pagado')
+            
+            # Filtrar pedidos por producto si se proporciona un id_producto
+            if id_producto:
+                pedidos = pedidos.filter(detallepedidos__id_producto=id_producto)
+            
+            # Obtén la lista de meseros
+            meseros = Meseros.objects.all()
+            meseros_dict = {mesero.id_mesero: mesero for mesero in meseros}
+            
+            # Obtén la lista de sucursales
+            sucursales = Sucursales.objects.all()
+            sucursales_dict = {sucursal.id_sucursal: sucursal for sucursal in sucursales}
+            
+            # Formatea los datos
+            data = []
+            for pedido in pedidos:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto_data = {
+                        'id_producto': detalle_pedido.id_producto.id_producto,
+                        'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                    }
+                    detalle_pedido_data.append(producto_data)
+                
+                # Obtén el ID del mesero asociado al pedido (si existe)
+                factura = pedido.factura_set.first()
+                id_mesero = factura.id_mesero.id_mesero if factura and factura.id_mesero else None
+                mesero_info = None
+                if id_mesero:
+                    mesero = meseros_dict[id_mesero]
+                    mesero_info = {
+                        'id_mesero': mesero.id_mesero,
+                        'nombre': mesero.nombre,
+                        'apellido': mesero.apellido,
+                        'telefono': mesero.telefono,
+                        'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
+                        'sestado': mesero.sestado,
+                        'id_sucursal': mesero.id_sucursal.id_sucursal,  # Agregar el ID de la sucursal al mesero
+                        'nombre_sucursal': mesero.id_sucursal.snombre,  # Agregar el nombre de la sucursal al mesero
+                    }
+                
+                # Obtén el id de la sucursal del pedido
+                id_sucursal_pedido = None
+                nombre_sucursal_pedido = None
+                if pedido.id_Sucursal:
+                    id_sucursal_pedido = pedido.id_Sucursal.id_sucursal
+                    nombre_sucursal_pedido = pedido.id_Sucursal.snombre
+                elif mesero_info and 'id_sucursal' in mesero_info:
+                    id_sucursal_pedido = mesero_info['id_sucursal']
+                    nombre_sucursal_pedido = sucursales_dict[id_sucursal_pedido].snombre
+                
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'id_sucursal': id_sucursal_pedido,
+                    'nombre_sucursal': nombre_sucursal_pedido,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'mesero': mesero_info,
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+                
+                data.append(pedido_data)
+            
+            return JsonResponse({'pedidos': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaPedidosIdProductoReportes(View):
+    def get(self, request, id_producto, *args, **kwargs):
+        try:
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos = Pedidos.objects.filter(
+                estado_pago='Pagado',
+                detallepedidos__id_producto=id_producto
+            )
+
+            # Obtén la lista de meseros
+            meseros = Meseros.objects.all()
+            meseros_dict = {mesero.id_mesero: mesero for mesero in meseros}
+
+            # Obtén la lista de sucursales
+            sucursales = Sucursales.objects.all()
+            sucursales_dict = {sucursal.id_sucursal: sucursal for sucursal in sucursales}
+
+            # Formatea los datos
+            data = []
+            for pedido in pedidos:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto_data = {
+                        'id_producto': detalle_pedido.id_producto.id_producto,
+                        'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                    }
+                    detalle_pedido_data.append(producto_data)
+
+                # Obtén el ID del mesero asociado al pedido (si existe)
+                factura = pedido.factura_set.first()
+                id_mesero = factura.id_mesero.id_mesero if factura and factura.id_mesero else None
+                mesero_info = None
+                if id_mesero:
+                    mesero = meseros_dict[id_mesero]
+                    mesero_info = {
+                        'id_mesero': mesero.id_mesero,
+                        'nombre': mesero.nombre,
+                        'apellido': mesero.apellido,
+                        'telefono': mesero.telefono,
+                        'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
+                        'sestado': mesero.sestado,
+                        'id_sucursal': mesero.id_sucursal.id_sucursal,  # Agregar el ID de la sucursal al mesero
+                        'nombre_sucursal': mesero.id_sucursal.snombre,  # Agregar el nombre de la sucursal al mesero
+                    }
+
+                # Obtén el id de la sucursal del pedido
+                id_sucursal_pedido = None
+                nombre_sucursal_pedido = None
+                if pedido.id_Sucursal:
+                    id_sucursal_pedido = pedido.id_Sucursal.id_sucursal
+                    nombre_sucursal_pedido = pedido.id_Sucursal.snombre
+                elif mesero_info and 'id_sucursal' in mesero_info:
+                    id_sucursal_pedido = mesero_info['id_sucursal']
+                    nombre_sucursal_pedido = sucursales_dict[id_sucursal_pedido].snombre
+
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'id_sucursal': id_sucursal_pedido,
+                    'nombre_sucursal': nombre_sucursal_pedido,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'mesero': mesero_info,
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+
+                data.append(pedido_data)
+
+            return JsonResponse({'pedidos': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class ListaPedidosTipoPReportes(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén los parámetros de la solicitud (si los hay)
+            id_producto = request.GET.get('id_producto')
+            
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos = Pedidos.objects.filter(estado_pago='Pagado')
+            
+            # Filtrar pedidos por producto si se proporciona un id_producto
+            if id_producto:
+                pedidos = pedidos.filter(detallepedidos__id_producto=id_producto)
+            
+            # Obtén la lista de meseros
+            meseros = Meseros.objects.all()
+            meseros_dict = {mesero.id_mesero: mesero for mesero in meseros}
+            
+            # Obtén la lista de sucursales
+            sucursales = Sucursales.objects.all()
+            sucursales_dict = {sucursal.id_sucursal: sucursal for sucursal in sucursales}
+            
+            # Formatea los datos
+            data = []
+            for pedido in pedidos:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto = detalle_pedido.id_producto
+                    tipo_producto = producto.id_tipoproducto.tpnombre  # Obtener el nombre del tipo de producto
+                    producto_data = {
+                        'id_producto': producto.id_producto,
+                        'nombreproducto': producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                        'tipo_producto': tipo_producto,  # Agregar el tipo de producto
+                    }
+                    detalle_pedido_data.append(producto_data)
+                
+                # Obtén el ID del mesero asociado al pedido (si existe)
+                factura = pedido.factura_set.first()
+                id_mesero = factura.id_mesero.id_mesero if factura and factura.id_mesero else None
+                mesero_info = None
+                if id_mesero:
+                    mesero = meseros_dict[id_mesero]
+                    mesero_info = {
+                        'id_mesero': mesero.id_mesero,
+                        'nombre': mesero.nombre,
+                        'apellido': mesero.apellido,
+                        'telefono': mesero.telefono,
+                        'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
+                        'sestado': mesero.sestado,
+                        'id_sucursal': mesero.id_sucursal.id_sucursal,  # Agregar el ID de la sucursal al mesero
+                        'nombre_sucursal': mesero.id_sucursal.snombre,  # Agregar el nombre de la sucursal al mesero
+                    }
+                
+                # Obtén el id de la sucursal del pedido
+                id_sucursal_pedido = None
+                nombre_sucursal_pedido = None
+                if pedido.id_Sucursal:
+                    id_sucursal_pedido = pedido.id_Sucursal.id_sucursal
+                    nombre_sucursal_pedido = pedido.id_Sucursal.snombre
+                elif mesero_info and 'id_sucursal' in mesero_info:
+                    id_sucursal_pedido = mesero_info['id_sucursal']
+                    nombre_sucursal_pedido = sucursales_dict[id_sucursal_pedido].snombre
+                
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'id_sucursal': id_sucursal_pedido,
+                    'nombre_sucursal': nombre_sucursal_pedido,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'mesero': mesero_info,
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+                
+                data.append(pedido_data)
+            
+            return JsonResponse({'pedidos': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class ListaPedidosTipoPidReportes(View):
+    def get(self, request, id_tipoproducto, *args, **kwargs):
+        try:
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos = Pedidos.objects.filter(estado_pago='Pagado')
+            
+            # Filtrar pedidos por tipo de producto si se proporciona una id_tipoproducto
+            if id_tipoproducto:
+                pedidos = pedidos.filter(detallepedidos__id_producto__tipo_producto__id_tipoproducto=id_tipoproducto)
+            
+            # Obtén la lista de meseros
+            meseros = Meseros.objects.all()
+            meseros_dict = {mesero.id_mesero: mesero for mesero in meseros}
+            
+            # Obtén la lista de sucursales
+            sucursales = Sucursales.objects.all()
+            sucursales_dict = {sucursal.id_sucursal: sucursal for sucursal in sucursales}
+            
+            # Formatea los datos
+            data = []
+            for pedido in pedidos:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto = detalle_pedido.id_producto
+                    tipo_producto = producto.tipo_producto.nombre  # Obtener el nombre del tipo de producto
+                    producto_data = {
+                        'id_producto': producto.id_producto,
+                        'nombreproducto': producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                        'tipo_producto': tipo_producto,  # Agregar el tipo de producto
+                    }
+                    detalle_pedido_data.append(producto_data)
+                
+                # Obtén el ID del mesero asociado al pedido (si existe)
+                factura = pedido.factura_set.first()
+                id_mesero = factura.id_mesero.id_mesero if factura and factura.id_mesero else None
+                mesero_info = None
+                if id_mesero:
+                    mesero = meseros_dict[id_mesero]
+                    mesero_info = {
+                        'id_mesero': mesero.id_mesero,
+                        'nombre': mesero.nombre,
+                        'apellido': mesero.apellido,
+                        'telefono': mesero.telefono,
+                        'fecha_registro': mesero.fecha_registro.strftime('%Y-%m-%d %H:%M:%S'),
+                        'sestado': mesero.sestado,
+                        'id_sucursal': mesero.id_sucursal.id_sucursal,  # Agregar el ID de la sucursal al mesero
+                        'nombre_sucursal': mesero.id_sucursal.snombre,  # Agregar el nombre de la sucursal al mesero
+                    }
+                
+                # Obtén el id de la sucursal del pedido
+                id_sucursal_pedido = None
+                nombre_sucursal_pedido = None
+                if pedido.id_Sucursal:
+                    id_sucursal_pedido = pedido.id_Sucursal.id_sucursal
+                    nombre_sucursal_pedido = pedido.id_Sucursal.snombre
+                elif mesero_info and 'id_sucursal' in mesero_info:
+                    id_sucursal_pedido = mesero_info['id_sucursal']
+                    nombre_sucursal_pedido = sucursales_dict[id_sucursal_pedido].snombre
+                
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'id_sucursal': id_sucursal_pedido,
+                    'nombre_sucursal': nombre_sucursal_pedido,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'mesero': mesero_info,
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+                
+                data.append(pedido_data)
+            
             return JsonResponse({'pedidos': data})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

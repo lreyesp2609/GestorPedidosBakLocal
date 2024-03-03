@@ -19,4 +19,10 @@ urlpatterns = [
     path('lista_facturas_con_detalles/<int:id_factura>/', ListaFacturasConDetalles.as_view(), name='lista_facturas_con_detalles'),
     path('listapedidospagados/', ListaTodosPedidosReportes.as_view(), name='listatodospagados'),
     path('listapedidospagado/<int:id_mesero>/', ListaPedidosReportes.as_view(), name='listapagados'),
+    path('listapedidossucursal/', ListaPedidosSucursalReportes.as_view(), name='listapagadossucursal'),
+    path('listapedidossucursalid/<int:id_sucursal>/', ListaPedidosIdSucuReportes.as_view(), name='listapagadossucursalid'),
+    path('listapedidosproducto/', ListaPedidosProductoReportes.as_view(), name='listapagadosproducto'),
+    path('listapedidosproductos/<int:id_producto>/', ListaPedidosIdProductoReportes.as_view(), name='listapagadosproductoid'),
+    path('listapedidostipoproducto/', ListaPedidosTipoPReportes.as_view(), name='listapagadostipo'),
+    path('listapedidostipoproductos/<int:id_tipoproducto>/', ListaPedidosTipoPidReportes.as_view(), name='listapagadostipoid'),
 ]
