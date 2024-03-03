@@ -742,8 +742,74 @@ class ListaNotasCredito(View):
             return JsonResponse({'error': 'La nota de crédito especificada no existe'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-
         
+
+@method_decorator(csrf_exempt, name='dispatch')
+class FacturaDetallesNotaCredito(View):
+    def get(self, request, id_factura, *args, **kwargs):
+        try:
+            # Obtén los detalles de la factura
+            factura = Factura.objects.get(id_factura=id_factura)
+            pedido = factura.id_pedido
+            estado_pago = pedido.estado_pago if pedido else None
+            tipo_de_pedido = pedido.tipo_de_pedido if pedido else None
+
+            factura_data = {
+                'id_factura': factura.id_factura,
+                'id_pedido': factura.id_pedido.id_pedido if factura.id_pedido else None,
+                'id_cliente': factura.id_cliente.id_cliente if factura.id_cliente else None,
+                'id_mesero': factura.id_mesero.id_mesero if factura.id_mesero else None,
+                'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S') if factura.fecha_emision else None,
+                'total': str(factura.total),
+                'iva': str(factura.iva) if factura.iva else None,
+                'descuento': str(factura.descuento) if factura.descuento else None,
+                'subtotal': str(factura.subtotal) if factura.subtotal else None,
+                'a_pagar': str(factura.a_pagar) if factura.a_pagar else None,
+                'codigo_factura': factura.codigo_factura,
+                'codigo_autorizacion': factura.codigo_autorizacion,
+                'numero_factura_desde': factura.numero_factura_desde,
+                'numero_factura_hasta': factura.numero_factura_hasta,
+                'estado_pago': estado_pago,
+                'tipo_de_pedido': tipo_de_pedido,
+                'estado': factura.estado
+            }
+
+            # Obtén los detalles de la factura
+            detalles_factura = DetalleFactura.objects.filter(id_factura=factura.id_factura)
+            detalles_data = []
+            for detalle in detalles_factura:
+                detalle_data = {
+                    'id_detallefactura': detalle.id_detallefactura,
+                    'id_producto': detalle.id_producto.id_producto if detalle.id_producto else None,
+                    'id_combo': detalle.id_combo.id_combo if detalle.id_combo else None,
+                    'cantidad': str(detalle.cantidad),
+                    'precio_unitario': str(detalle.precio_unitario),
+                    'descuento': str(detalle.descuento),
+                    'valor': str(detalle.valor)
+                }
+                detalles_data.append(detalle_data)
+
+            factura_data['detalles_factura'] = detalles_data
+
+            # Obtén los detalles de la nota de crédito asociada (si existe)
+            nota_credito = NotaCredito.objects.filter(id_factura=id_factura).first()
+            if nota_credito:
+                nota_credito_data = {
+                    'id_notacredito': nota_credito.id_notacredito,
+                    'id_factura': nota_credito.id_factura,
+                    'fecha_emision': nota_credito.fechaemision.strftime('%Y-%m-%d %H:%M:%S') if nota_credito.fechaemision else None,
+                    'motivo': nota_credito.motivo,
+                    'estado': nota_credito.estado
+                }
+            else:
+                nota_credito_data = None
+
+            return JsonResponse({'factura': factura_data, 'nota_credito': nota_credito_data})
+        except Factura.DoesNotExist:
+            return JsonResponse({'error': 'La factura especificada no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+
         
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearReversoFactura(View):
