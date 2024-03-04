@@ -1420,42 +1420,47 @@ class ListaPedidosIdProductoReportes(View):
 class ListaPedidosTipoPReportes(View):
     def get(self, request, *args, **kwargs):
         try:
-            # Obtén los parámetros de la solicitud (si los hay)
-            id_producto = request.GET.get('id_producto')
-            
+
+            productos = Producto.objects.all()
+
+            # Lista de IDs de todos los productos
+            ids_productos = productos.values_list('id_producto', flat=True)
+
             # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
-            pedidos = Pedidos.objects.filter(estado_pago='Pagado')
-            
-            # Filtrar pedidos por producto si se proporciona un id_producto
-            if id_producto:
-                pedidos = pedidos.filter(detallepedidos__id_producto=id_producto)
-            
+            pedidos = Pedidos.objects.filter(
+                estado_pago='Pagado',
+                detallepedidos__id_producto__in=ids_productos
+            ).distinct()
+
             # Obtén la lista de meseros
             meseros = Meseros.objects.all()
             meseros_dict = {mesero.id_mesero: mesero for mesero in meseros}
-            
+
             # Obtén la lista de sucursales
             sucursales = Sucursales.objects.all()
             sucursales_dict = {sucursal.id_sucursal: sucursal for sucursal in sucursales}
-            
+
             # Formatea los datos
-            data = []
+            data = {
+                'pedidos': [],
+            }
             for pedido in pedidos:
                 detalle_pedido_data = []
+                detalle_pedidos_procesados = set()  # Mantener un conjunto de IDs de detalle de pedidos procesados
                 for detalle_pedido in pedido.detallepedidos_set.all():
-                    producto = detalle_pedido.id_producto
-                    tipo_producto = producto.id_tipoproducto.tpnombre  # Obtener el nombre del tipo de producto
-                    producto_data = {
-                        'id_producto': producto.id_producto,
-                        'nombreproducto': producto.nombreproducto,
-                        'cantidad': detalle_pedido.cantidad,
-                        'precio_unitario': detalle_pedido.precio_unitario,
-                        'impuesto': detalle_pedido.impuesto,
-                        'descuento': detalle_pedido.descuento,
-                        'tipo_producto': tipo_producto,  # Agregar el tipo de producto
-                    }
-                    detalle_pedido_data.append(producto_data)
-                
+                    # Evitar duplicados de pedidos que tienen múltiples productos
+                    if detalle_pedido.id_producto.id_producto not in detalle_pedidos_procesados:
+                        producto_data = {
+                            'id_producto': detalle_pedido.id_producto.id_producto,
+                            'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                            'cantidad': detalle_pedido.cantidad,
+                            'precio_unitario': detalle_pedido.precio_unitario,
+                            'impuesto': detalle_pedido.impuesto,
+                            'descuento': detalle_pedido.descuento,
+                        }
+                        detalle_pedido_data.append(producto_data)
+                        detalle_pedidos_procesados.add(detalle_pedido.id_producto.id_producto)
+
                 # Obtén el ID del mesero asociado al pedido (si existe)
                 factura = pedido.factura_set.first()
                 id_mesero = factura.id_mesero.id_mesero if factura and factura.id_mesero else None
@@ -1472,7 +1477,7 @@ class ListaPedidosTipoPReportes(View):
                         'id_sucursal': mesero.id_sucursal.id_sucursal,  # Agregar el ID de la sucursal al mesero
                         'nombre_sucursal': mesero.id_sucursal.snombre,  # Agregar el nombre de la sucursal al mesero
                     }
-                
+
                 # Obtén el id de la sucursal del pedido
                 id_sucursal_pedido = None
                 nombre_sucursal_pedido = None
@@ -1482,9 +1487,11 @@ class ListaPedidosTipoPReportes(View):
                 elif mesero_info and 'id_sucursal' in mesero_info:
                     id_sucursal_pedido = mesero_info['id_sucursal']
                     nombre_sucursal_pedido = sucursales_dict[id_sucursal_pedido].snombre
-                
+
                 pedido_data = {
                     'id_pedido': pedido.id_pedido,
+                    'id_tipoproducto': detalle_pedido.id_producto.id_categoria.id_tipoproducto.id_tipoproducto,
+                    'nombretp': detalle_pedido.id_producto.id_categoria.id_tipoproducto.tpnombre,
                     'id_sucursal': id_sucursal_pedido,
                     'nombre_sucursal': nombre_sucursal_pedido,
                     'cliente': {
@@ -1506,48 +1513,60 @@ class ListaPedidosTipoPReportes(View):
                     'observacion_del_cliente': pedido.observacion_del_cliente,
                     'detalle_pedido': detalle_pedido_data,
                 }
-                
-                data.append(pedido_data)
-            
-            return JsonResponse({'pedidos': data})
+
+                data['pedidos'].append(pedido_data)
+
+            return JsonResponse(data)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-class ListaPedidosTipoPidReportes(View):
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaTipos(View):
     def get(self, request, id_tipoproducto, *args, **kwargs):
         try:
-            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
-            pedidos = Pedidos.objects.filter(estado_pago='Pagado')
-            
-            # Filtrar pedidos por tipo de producto si se proporciona una id_tipoproducto
-            if id_tipoproducto:
-                pedidos = pedidos.filter(detallepedidos__id_producto__tipo_producto__id_tipoproducto=id_tipoproducto)
-            
+            # Obtén la lista de productos que pertenecen al tipo de producto dado
+            productos = Producto.objects.filter(
+                id_categoria__id_tipoproducto=id_tipoproducto
+            )
+
+            # Lista de IDs de productos que pertenecen al tipo de producto dado
+            ids_productos = productos.values_list('id_producto', flat=True)
+
+             # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos = Pedidos.objects.filter(
+                estado_pago='Pagado',
+                detallepedidos__id_producto__in=ids_productos
+            ).distinct()
+
             # Obtén la lista de meseros
             meseros = Meseros.objects.all()
             meseros_dict = {mesero.id_mesero: mesero for mesero in meseros}
-            
+
             # Obtén la lista de sucursales
             sucursales = Sucursales.objects.all()
             sucursales_dict = {sucursal.id_sucursal: sucursal for sucursal in sucursales}
-            
+
             # Formatea los datos
-            data = []
+            data = {
+                'id_tipoproducto': id_tipoproducto,
+                'pedidos': [],
+            }
             for pedido in pedidos:
                 detalle_pedido_data = []
+                detalle_pedidos_procesados = set()  # Mantener un conjunto de IDs de detalle de pedidos procesados
                 for detalle_pedido in pedido.detallepedidos_set.all():
-                    producto = detalle_pedido.id_producto
-                    tipo_producto = producto.tipo_producto.nombre  # Obtener el nombre del tipo de producto
-                    producto_data = {
-                        'id_producto': producto.id_producto,
-                        'nombreproducto': producto.nombreproducto,
-                        'cantidad': detalle_pedido.cantidad,
-                        'precio_unitario': detalle_pedido.precio_unitario,
-                        'impuesto': detalle_pedido.impuesto,
-                        'descuento': detalle_pedido.descuento,
-                        'tipo_producto': tipo_producto,  # Agregar el tipo de producto
-                    }
-                    detalle_pedido_data.append(producto_data)
-                
+                    # Evitar duplicados de pedidos que tienen múltiples productos
+                    if detalle_pedido.id_producto.id_producto not in detalle_pedidos_procesados:
+                        producto_data = {
+                            'id_producto': detalle_pedido.id_producto.id_producto,
+                            'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                            'cantidad': detalle_pedido.cantidad,
+                            'precio_unitario': detalle_pedido.precio_unitario,
+                            'impuesto': detalle_pedido.impuesto,
+                            'descuento': detalle_pedido.descuento,
+                        }
+                        detalle_pedido_data.append(producto_data)
+                        detalle_pedidos_procesados.add(detalle_pedido.id_producto.id_producto)
+
                 # Obtén el ID del mesero asociado al pedido (si existe)
                 factura = pedido.factura_set.first()
                 id_mesero = factura.id_mesero.id_mesero if factura and factura.id_mesero else None
@@ -1564,7 +1583,7 @@ class ListaPedidosTipoPidReportes(View):
                         'id_sucursal': mesero.id_sucursal.id_sucursal,  # Agregar el ID de la sucursal al mesero
                         'nombre_sucursal': mesero.id_sucursal.snombre,  # Agregar el nombre de la sucursal al mesero
                     }
-                
+
                 # Obtén el id de la sucursal del pedido
                 id_sucursal_pedido = None
                 nombre_sucursal_pedido = None
@@ -1574,9 +1593,11 @@ class ListaPedidosTipoPidReportes(View):
                 elif mesero_info and 'id_sucursal' in mesero_info:
                     id_sucursal_pedido = mesero_info['id_sucursal']
                     nombre_sucursal_pedido = sucursales_dict[id_sucursal_pedido].snombre
-                
+
                 pedido_data = {
                     'id_pedido': pedido.id_pedido,
+                    'id_tipoproducto': id_tipoproducto,
+                    'nombretp': detalle_pedido.id_producto.id_categoria.id_tipoproducto.tpnombre,
                     'id_sucursal': id_sucursal_pedido,
                     'nombre_sucursal': nombre_sucursal_pedido,
                     'cliente': {
@@ -1598,9 +1619,9 @@ class ListaPedidosTipoPidReportes(View):
                     'observacion_del_cliente': pedido.observacion_del_cliente,
                     'detalle_pedido': detalle_pedido_data,
                 }
-                
-                data.append(pedido_data)
-            
-            return JsonResponse({'pedidos': data})
+
+                data['pedidos'].append(pedido_data)
+
+            return JsonResponse(data)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
