@@ -487,5 +487,5 @@ class BuscarSucursalPorUbicacion(View):
             traceback.print_exc()
             return JsonResponse({'error': 'La sucursal no existe'}, status=404)
         except Exception as e:
-            traceback.print_exc()
+            traceback.print_exc() 
             return JsonResponse({'error': str(e)}, status=400)
