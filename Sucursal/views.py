@@ -464,7 +464,6 @@ class BuscarSucursalPorUbicacion(View):
             # Obtener todas las sucursales de la base de datos
             sucursales = Sucursales.objects.all()
             for sucursal in sucursales:
-                print("Si se devuelve")
                 print(latitud)
                 print(longitud)
                 geosector_id = sucursal.id_geosector.id_geosector
@@ -478,7 +477,7 @@ class BuscarSucursalPorUbicacion(View):
                     sucursal_dict = model_to_dict(sucursal)
                     print("Si se devuelve")
                     return JsonResponse({'sucursal': sucursal_dict})
-            return JsonResponse({'sucursal': "no hay"})
+            return JsonResponse({'no': "no hay"})
         except Sucursales.DoesNotExist:
             traceback.print_exc()
             return JsonResponse({'error': 'La sucursal no existe'}, status=404)
