@@ -461,9 +461,6 @@ class BuscarSucursalPorUbicacion(View):
         try:
             latitud = float(request.POST.get('latitud'))
             longitud = float(request.POST.get('longitud')), 
-            latitud=-1.0177917594163781
-            longitud=-79.467384839528
-
             # Obtener todas las sucursales de la base de datos
             sucursales = Sucursales.objects.all()
 
