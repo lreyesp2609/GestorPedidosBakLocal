@@ -467,7 +467,6 @@ class BuscarSucursalPorUbicacion(View):
                 geosector_id = sucursal.id_geosector.id_geosector
                 geosector = Geosectores.objects.get(id_geosector=geosector_id)
                 ubicaciones_geosector = DetalleGeosector.objects.filter(id_geosector=geosector)
-
                 # Crear un polígono con las ubicaciones del geosector
                 polygon_coordinates = [(ubicacion.id_ubicacion.latitud, ubicacion.id_ubicacion.longitud) for ubicacion in ubicaciones_geosector]
                 polygon = Polygon(polygon_coordinates)
