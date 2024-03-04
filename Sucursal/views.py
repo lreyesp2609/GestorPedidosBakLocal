@@ -470,8 +470,6 @@ class BuscarSucursalPorUbicacion(View):
                 # Crear un polígono con las ubicaciones del geosector
                 polygon_coordinates = [(ubicacion.id_ubicacion.latitud, ubicacion.id_ubicacion.longitud) for ubicacion in ubicaciones_geosector]
                 polygon = Polygon(polygon_coordinates)
-
-                # Crear un punto con las coordenadas de la ubicación
                 point = Point(latitud, longitud)
                 if point.within(polygon):
                     sucursal_dict = model_to_dict(sucursal)
