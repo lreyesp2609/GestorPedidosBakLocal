@@ -460,10 +460,13 @@ class BuscarSucursalPorUbicacion(View):
     def post(self, request, *args, **kwargs):
         try:
             latitud = float(request.POST.get('latitud'))
-            longitud = float(request.POST.get('longitud')), 
+            longitud = float(request.POST.get('longitud'))
             # Obtener todas las sucursales de la base de datos
             sucursales = Sucursales.objects.all()
             for sucursal in sucursales:
+                print("Si se devuelve")
+                print(latitud)
+                print(longitud)
                 geosector_id = sucursal.id_geosector.id_geosector
                 geosector = Geosectores.objects.get(id_geosector=geosector_id)
                 ubicaciones_geosector = DetalleGeosector.objects.filter(id_geosector=geosector)
