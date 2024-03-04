@@ -1,4 +1,6 @@
 import json 
+from django.forms.models import model_to_dict
+from shapely.geometry import Point, Polygon
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -452,3 +454,38 @@ class ListarSucursalReporte(View):
             administradores = Administrador.objects.all().count()
             meseros = Mesero.objects.all().count()
         return jefes_cocina + motorizados + administradores + meseros
+@method_decorator(csrf_exempt, name='dispatch')
+class BuscarSucursalPorUbicacion(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            latitud = float(request.POST.get('latitud'))
+            longitud = float(request.POST.get('longitud')), 
+            latitud=-1.0177917594163781
+            longitud=-79.467384839528
+
+            # Obtener todas las sucursales de la base de datos
+            sucursales = Sucursales.objects.all()
+
+            for sucursal in sucursales:
+                geosector_id = sucursal.id_geosector.id_geosector
+                geosector = Geosectores.objects.get(id_geosector=geosector_id)
+                ubicaciones_geosector = DetalleGeosector.objects.filter(id_geosector=geosector)
+
+                # Crear un polígono con las ubicaciones del geosector
+                polygon_coordinates = [(ubicacion.id_ubicacion.latitud, ubicacion.id_ubicacion.longitud) for ubicacion in ubicaciones_geosector]
+                polygon = Polygon(polygon_coordinates)
+
+                # Crear un punto con las coordenadas de la ubicación
+                point = Point(latitud, longitud)
+                if point.within(polygon):
+                    sucursal_dict = model_to_dict(sucursal)
+                    print("Si se devuelve")
+                    return JsonResponse({'sucursal': sucursal_dict})
+            return JsonResponse({'sucursal': "no hay"})
+        except Sucursales.DoesNotExist:
+            traceback.print_exc()
+            return JsonResponse({'error': 'La sucursal no existe'}, status=404)
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=400)
