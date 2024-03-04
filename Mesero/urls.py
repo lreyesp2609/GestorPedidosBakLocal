@@ -24,6 +24,6 @@ urlpatterns = [
     path('listapedidosproducto/', ListaPedidosProductoReportes.as_view(), name='listapagadosproducto'),
     path('listapedidosproductos/<int:id_producto>/', ListaPedidosIdProductoReportes.as_view(), name='listapagadosproductoid'),
     path('listapedidostipoproducto/', ListaPedidosTipoPReportes.as_view(), name='listapagadostipo'),
-    path('listapedidostipoproductos/<int:id_tipoproducto>/', ListaPedidosTipoPidReportes.as_view(), name='listapagadostipoid'),
+    path('listapedidostipoproductos/<int:id_tipoproducto>/', ListaTipos.as_view(), name='listapagadostipoid'),
     path('factura_detalles_nota_credito/<int:id_factura>/', FacturaDetallesNotaCredito.as_view(), name='factura_detalles_nota_credito'),
 ]
