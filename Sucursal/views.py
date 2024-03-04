@@ -463,7 +463,6 @@ class BuscarSucursalPorUbicacion(View):
             longitud = float(request.POST.get('longitud')), 
             # Obtener todas las sucursales de la base de datos
             sucursales = Sucursales.objects.all()
-
             for sucursal in sucursales:
                 geosector_id = sucursal.id_geosector.id_geosector
                 geosector = Geosectores.objects.get(id_geosector=geosector_id)
