@@ -362,6 +362,7 @@ class obtenerPedidos(View):
                     'Pago':pedido.estado_pago,
                     'estado_del_pedido': pedido.estado_del_pedido,
                     'fecha_pedido': pedido.fecha_pedido,
+                    'tipo_pago': pedido.metodo_de_pago,
                 }
 
                 lista_pedidos.append(pedido_data)
