@@ -67,7 +67,7 @@ class PagosPasarela(models.Model):
     estado = models.CharField(max_length=1, choices=[('E', 'E'), ('C', 'C')], null=False)
     cantidad = models.DecimalField(max_digits=9, decimal_places=2, null=False)
     hora_de_pago = models.DateTimeField(null=False)
-    codigo_unico = models.BinaryField(null=False)  # Cambiado a BinaryField para almacenar BYTEA
+    codigo_unico = models.IntegerField(null=True)  # Cambiado a BinaryField para almacenar BYTEA
 
     class Meta:
         managed = False

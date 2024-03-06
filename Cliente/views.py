@@ -1,4 +1,5 @@
 import base64
+from django.utils import timezone
 import re
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
@@ -256,6 +257,15 @@ class RealizarPedidoView(View):
                     descuento=detalle['descuento'],
                     valor=detalle['valor']
                 )
+            if(nuevo_pedido.metodo_de_pago=='X'):
+                PagosPas=PagosPasarela.objects.create(
+                    id_pedido = nuevo_pedido,
+                    estado = 'E',
+                    cantidad = nuevo_pedido.precio,
+                    hora_de_pago = fecha_pedido,
+                    codigo_unico = '102'
+                )
+
 
             return JsonResponse({'success': True, 'message': 'Pedido realizado con éxito.'})
         except Exception as e:
@@ -476,7 +486,6 @@ class CambiarEstadoPagos(View):
                         estado = 'E',
                         cantidad = pedido.precio,
                         hora_de_pago = pedido.fecha_pedido,
-                        codigo_unico = '102'
                     )
 
                 return JsonResponse({'success': True, 'message': 'Pago actualizado con éxito.'})

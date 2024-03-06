@@ -436,7 +436,7 @@ CREATE TABLE PagosPasarela (
 	Estado CHAR(1) check (Estado IN ('E', 'C')) NOT NULL,
 	Cantidad NUMERIC(9,2) NOT NULL,
 	Hora_de_pago TIMESTAMP NOT NULL,
-	Codigo_unico BYTEA NOT NULL
+	Codigo_unico INTEGER
 );
 
 CREATE TABLE PagosFraccionados (
@@ -445,7 +445,7 @@ CREATE TABLE PagosFraccionados (
 	id_pagoTransferencia INTEGER REFERENCES PagosTransferencia(id_pagoTransferencia) NOT NULL,
 	id_pagoPasarela INTEGER REFERENCES PagosPasarela(id_pagoPasarela) NOT NULL,
 	Cantidad NUMERIC(9,2) NOT NULL,
-	Hora_de_pago TIMESTAMP NOT NULL
+	Hora_de_pago INTEGER
 );
 
 CREATE TABLE Proveedores (
