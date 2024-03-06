@@ -70,13 +70,6 @@ class ConfirmarPedido(View):
             with transaction.atomic():
                 id_pedido = request.POST.get('id_pedido')
                 pedido = Pedidos.objects.get(id_pedido=id_pedido)
-                precio = "703,00 €"
-                precio = precio.replace(",", "").replace("€", "").strip()
-
-                # Reemplaza la coma con un punto si es necesario
-                precio = precio.replace(",", ".")
-
-                pedido.precio = Decimal(precio)
                 pedido.estado_del_pedido = 'E'
                 pedido.save()
 
@@ -221,9 +214,8 @@ class TomarPedido(View):
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                     id_producto_id = detalle_pedido_data.get('id_producto')
                     id_combo_id = detalle_pedido_data.get('id_combo')
-                    precio_unitario_raw = detalle_pedido_data['precio_unitario']
+                    precio_unitario = detalle_pedido_data['precio_unitario']
                     # Convertir el precio_unitario_raw a un número decimal
-                    precio_unitario = Decimal(precio_unitario_raw.replace(',', '').replace('€', '').strip())
                     # Impuesto establecido en 0 para evitar que se calcule
                     impuesto = Decimal(0)
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
@@ -283,8 +275,7 @@ class TomarPedido(View):
                     id_producto_id = detalle_pedido_data.get('id_producto')
                     id_combo_id = detalle_pedido_data.get('id_combo')
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
-                    precio_unitario_raw = detalle_pedido_data['precio_unitario']
-                    precio_unitario = Decimal(precio_unitario_raw.replace(',', '').replace('€', '').strip())
+                    precio_unitario = detalle_pedido_data['precio_unitario']
                     descuento = Decimal(detalle_pedido_data.get('descuento', 0))
                     valor = (precio_unitario * cantidad) - descuento
 
