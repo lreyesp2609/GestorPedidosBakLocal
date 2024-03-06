@@ -14,5 +14,6 @@ urlpatterns = [
     path('id/', DevolverUsuario.as_view(), name='usuario'),
     path('obtener_usuario/<int:id_usuario>/', ObtenerUsuariosView.as_view(), name='obtener_usuario_por_id'),
     path('editar_usuario/<int:id_cuenta>/', EditarUsuariosView.as_view(), name='editar_usuario_por_id'),
+    path('editar_ubicacion/<int:id_cuenta>/', EditarUbicacionCliente.as_view(), name='EditarUbicacionCliente'),
 
 ]

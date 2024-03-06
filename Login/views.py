@@ -258,7 +258,7 @@ class CerrarSesionView(View):
         except Token.DoesNotExist:
     # Maneja el caso en el que el token no existe
             print("El token no existe para este usuario.")          
-@method_decorator(login_required, name='dispatch')
+
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarCliente(View):
     @transaction.atomic
@@ -410,13 +410,18 @@ class EditarUsuariosView(View):
             cliente.ruc_cedula= request.POST.get('ruc_cedula')
             cliente.crazon_social= request.POST.get('crazon_social')
             ubicacion1=request.POST.get('latitud1')
+            print("a ver que pasa")
+            print(ubicacion1)
             ubicacion2=request.POST.get('latitud2')
             ubicacion3=request.POST.get('latitud3')
             if ubicacion1:
                 if cliente.id_ubicacion1:
                     if request.POST.get('latitud1')!=0 and request.POST.get('longitud1')!=0: 
-                        cliente.id_ubicacion1.latitud= request.POST.get('latitud1')
-                        cliente.id_ubicacion1.longitud = request.POST.get('longitud1'),
+                        cliente.id_ubicacion1= Ubicaciones.objects.create(
+                            latitud = request.POST.get('latitud1'),
+                            longitud = request.POST.get('longitud1'),
+                            sestado = 1
+                        )
                 else:
                     cliente.id_ubicacion1= Ubicaciones.objects.create(
                         latitud = request.POST.get('latitud1'),
@@ -426,8 +431,11 @@ class EditarUsuariosView(View):
             if ubicacion2:
                 if cliente.id_ubicacion2:
                     if request.POST.get('latitud2')!="" and request.POST.get('longitud2')!="": 
-                        cliente.id_ubicacion2.latitud= request.POST.get('latitud2')
-                        cliente.id_ubicacion2.longitud = request.POST.get('longitud2'),
+                        cliente.id_ubicacion2= Ubicaciones.objects.create(
+                            latitud = request.POST.get('latitud2'),
+                            longitud = request.POST.get('longitud2'),
+                            sestado = 1
+                        )
                 else:
                     cliente.id_ubicacion2= Ubicaciones.objects.create(
                         latitud = request.POST.get('latitud2'),
@@ -437,9 +445,53 @@ class EditarUsuariosView(View):
             if ubicacion3:
                 if cliente.id_ubicacion3:
                     if request.POST.get('latitud3')!=0 and request.POST.get('longitud3')!=0: 
-                        cliente.id_ubicacion3.latitud= request.POST.get('latitud3')
-                        cliente.id_ubicacion3.longitud = request.POST.get('longitud3'),
+                        cliente.id_ubicacion3= Ubicaciones.objects.create(
+                            latitud = request.POST.get('latitud3'),
+                            longitud = request.POST.get('longitud3'),
+                            sestado = 1
+                        )
                 else:
+                    cliente.id_ubicacion3= Ubicaciones.objects.create(
+                        latitud = request.POST.get('latitud3'),
+                        longitud = request.POST.get('longitud3'),
+                        sestado = 1
+                    )
+            cliente.save()
+            return JsonResponse({'mesnaje':'usuario editado con exito'})
+        except Clientes.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({'error': str(e)}, status=400) 
+
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarUbicacionCliente(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            id_usuario = kwargs.get('id_cuenta')
+
+            cliente=Clientes.objects.get(id_cuenta=id_usuario)
+            ubicacion1=request.POST.get('latitud1')
+            ubicacion2=request.POST.get('latitud2')
+            ubicacion3=request.POST.get('latitud3')
+            if ubicacion1:
+                if request.POST.get('latitud1')!=0 and request.POST.get('longitud1')!=0: 
+                    cliente.id_ubicacion1= Ubicaciones.objects.create(
+                        latitud = request.POST.get('latitud1'),
+                        longitud = request.POST.get('longitud1'),
+                        sestado = 1
+                    )
+            if ubicacion2:
+                if request.POST.get('latitud2')!=0 and request.POST.get('longitud2')!=0: 
+                    cliente.id_ubicacion2= Ubicaciones.objects.create(
+                        latitud = request.POST.get('latitud2'),
+                        longitud = request.POST.get('longitud2'),
+                        sestado = 1
+                    )
+            if ubicacion3:
+                if request.POST.get('latitud3')!=0 and request.POST.get('longitud3')!=0: 
                     cliente.id_ubicacion3= Ubicaciones.objects.create(
                         latitud = request.POST.get('latitud3'),
                         longitud = request.POST.get('longitud3'),
