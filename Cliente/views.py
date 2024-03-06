@@ -483,4 +483,27 @@ class CambiarEstadoPagos(View):
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
+def verificar_pedido_validado(request, id_factura):
+    try:
+        factura = Factura.objects.get(id_factura=id_factura)
+        pedido = factura.id_pedido
+        estado_pago = pedido.estado_pago
+        numero_factura = factura.id_factura
+        
+        if estado_pago == 'En revisión':
+            mensaje = f'El pedido asociado a la factura {numero_factura} todavía se encuentra en revisión.'
+        elif estado_pago == 'Pagado':
+            mensaje = f'El pedido asociado a la factura {numero_factura} se encuentra pagado.'
+        elif estado_pago == 'Denegado':
+            mensaje = f'El pedido asociado a la factura {numero_factura} se denegó.'
+        else:
+            mensaje = 'Estado de pago no reconocido'
+        
+        return JsonResponse({'message': mensaje, 'status': estado_pago}, status=200)
+    except Factura.DoesNotExist:
+        return JsonResponse({'error': 'La factura no existe'}, status=404)
+    except Pedidos.DoesNotExist:
+        return JsonResponse({'error': 'El pedido asociado no existe'}, status=404)
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
 

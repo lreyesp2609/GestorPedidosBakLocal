@@ -12,5 +12,6 @@ urlpatterns = [
     path('obtener_pedido2/', obtenerPedidos2.as_view(), name='obtener_pedidos2'),
     path('actualizar_pedido/<int:id_pedido>/', CambiarEstadoPedidos.as_view(), name='actualizar_pedido'),
     path('actualizar_pago/<int:id_pedido>/', CambiarEstadoPagos.as_view(), name='actualizar_pago'),
+    path('verificar_pedido_validado/<int:id_factura>/', verificar_pedido_validado, name='verificar_pedido_validado'),
 ]
 
