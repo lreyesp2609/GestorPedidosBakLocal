@@ -1,5 +1,6 @@
 from django.urls import path
 from .views import *
+from . import views
 
 urlpatterns = [
     path('actualizar_cliente/', ActualizarClienteView.as_view(), name='actualizar_cliente'),
