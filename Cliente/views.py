@@ -135,139 +135,139 @@ class RealizarPedidoView(View):
     @transaction.atomic
     def post(self, request, *args, **kwargs):
         try:
-            id_usuario = kwargs.get('id_cuenta')
-            id_cliente = Clientes.objects.get(id_cuenta=id_usuario)
+            with transaction.atomic():
+                id_usuario = kwargs.get('id_cuenta')
+                id_cliente = Clientes.objects.get(id_cuenta=id_usuario)
 
-            # Acceder a los datos directamente desde request.POST y request.FILES
-            precio = request.POST.get('precio', 0)
-            print(precio)
-            fecha_pedido = datetime.now()
-            tipo_de_pedido = request.POST.get('tipo_de_pedido')
-            metodo_de_pago = request.POST.get('metodo_de_pago')
-            puntos = request.POST.get('puntos', 0)
-            estado_del_pedido = request.POST.get('estado_del_pedido', 'O')
-            sucursal = request.POST.get('id_sucursal')
-            latitud = request.POST.get('latitud')
-            longitud = request.POST.get('longitud')
-            estado_pago = request.POST.get('estado_pago', 'En revisión')
-            imagen_archivo = request.FILES.get('imagen')
-            hora = (request.POST.get('fecha_hora'))
-            if sucursal:
-                sucursal=Sucursales.objects.first().id_sucursal
-            ubicacion=None
-            if latitud:
-                ubicacion= Ubicaciones.objects.create(
-                    latitud=latitud,
-                    longitud=longitud,
-                    sestado=1
+                # Acceder a los datos directamente desde request.POST y request.FILES
+                precio = request.POST.get('precio', 0)
+                print(precio)
+                fecha_pedido = datetime.now()
+                tipo_de_pedido = request.POST.get('tipo_de_pedido')
+                metodo_de_pago = request.POST.get('metodo_de_pago')
+                puntos = request.POST.get('puntos', 0)
+                estado_del_pedido = request.POST.get('estado_del_pedido', 'O')
+                sucursal = request.POST.get('id_sucursal')
+                latitud = request.POST.get('latitud')
+                longitud = request.POST.get('longitud')
+                estado_pago = request.POST.get('estado_pago', 'En revisión')
+                imagen_archivo = request.FILES.get('imagen')
+                hora = (request.POST.get('fecha_hora'))
+
+                ubicacion=None
+                if latitud:
+                    ubicacion= Ubicaciones.objects.create(
+                        latitud=latitud,
+                        longitud=longitud,
+                        sestado=1
+                    )
+                image_64_encode = None
+                if imagen_archivo:
+                    try:
+                        image_read = imagen_archivo.read()
+                        image_64_encode = base64.b64encode(image_read)
+                        image_encoded = image_64_encode.decode('utf-8')
+                    except UnidentifiedImageError as img_error:
+                        return JsonResponse({'error': f"Error al procesar imagen: {str(img_error)}"}, status=400)
+
+                detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
+                detalles_pedido = json.loads(detalles_pedido_raw)
+
+                total_precio_pedido = Decimal(0)
+                total_descuento = Decimal(0)
+                detalles_factura = []
+                if hora:
+                    hora=int(hora)
+                    minuto = int(request.POST.get('fecha_minutos'))
+                    fecha_hora_entrega = fecha_pedido.replace(hour=hora, minute=minuto, second=0, microsecond=0)
+                    fecha_hora_entrega_formato_correcto = fecha_hora_entrega.strftime('%Y-%m-%d %H:%M:%S')
+                    fecha_pedido=fecha_hora_entrega_formato_correcto
+                nuevo_pedido = Pedidos.objects.create(
+                    id_cliente=id_cliente,
+                    precio=precio,
+                    tipo_de_pedido=tipo_de_pedido,
+                    metodo_de_pago=metodo_de_pago,
+                    fecha_pedido=fecha_pedido,
+                    puntos=puntos,
+                    estado_del_pedido=estado_del_pedido,
+                    estado_pago=estado_pago,
+                    imagen=image_64_encode,
+                    id_Ubicacion= ubicacion,
+                    id_Sucursal= Sucursales.objects.get(id_sucursal=sucursal)
                 )
-            image_64_encode = None
-            if imagen_archivo:
-                try:
-                    image_read = imagen_archivo.read()
-                    image_64_encode = base64.b64encode(image_read)
-                    image_encoded = image_64_encode.decode('utf-8')
-                except UnidentifiedImageError as img_error:
-                    return JsonResponse({'error': f"Error al procesar imagen: {str(img_error)}"}, status=400)
 
-            detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
-            detalles_pedido = json.loads(detalles_pedido_raw)
+                for detalle_pedido_data in detalles_pedido['detalles_pedido']:
+                    id_producto = detalle_pedido_data.get('id_producto')
+                    producto_asociado = Producto.objects.get(id_producto=id_producto)
+                    cantidad = Decimal(detalle_pedido_data.get('cantidad_pedido'))
+                    precio_unitario = Decimal(detalle_pedido_data.get('costo_unitario'))
+                    # Impuesto establecido en 0 para evitar que se calcule
+                    impuesto = Decimal(0)
+                    descuento = Decimal(detalle_pedido_data.get('descuento', 0))
 
-            total_precio_pedido = Decimal(0)
-            total_descuento = Decimal(0)
-            detalles_factura = []
-            if hora:
-                hora=int(hora)
-                minuto = int(request.POST.get('fecha_minutos'))
-                fecha_hora_entrega = fecha_pedido.replace(hour=hora, minute=minuto, second=0, microsecond=0)
-                fecha_hora_entrega_formato_correcto = fecha_hora_entrega.strftime('%Y-%m-%d %H:%M:%S')
-                fecha_pedido=fecha_hora_entrega_formato_correcto
-            nuevo_pedido = Pedidos.objects.create(
-                id_cliente=id_cliente,
-                precio=precio,
-                tipo_de_pedido=tipo_de_pedido,
-                metodo_de_pago=metodo_de_pago,
-                fecha_pedido=fecha_pedido,
-                puntos=puntos,
-                estado_del_pedido=estado_del_pedido,
-                estado_pago=estado_pago,
-                imagen=image_64_encode,
-                id_Ubicacion= ubicacion,
-                id_Sucursal= Sucursales.objects.get(id_sucursal=sucursal)
-            )
+                    precio_total_detalle = (precio_unitario * cantidad) - descuento
+                    total_precio_pedido += precio_total_detalle
+                    total_descuento += descuento
 
-            for detalle_pedido_data in detalles_pedido['detalles_pedido']:
-                id_producto = detalle_pedido_data.get('id_producto')
-                producto_asociado = Producto.objects.get(id_producto=id_producto)
-                cantidad = Decimal(detalle_pedido_data.get('cantidad_pedido'))
-                precio_unitario = Decimal(detalle_pedido_data.get('costo_unitario'))
-                # Impuesto establecido en 0 para evitar que se calcule
-                impuesto = Decimal(0)
-                descuento = Decimal(detalle_pedido_data.get('descuento', 0))
+                    detalles_factura.append({
+                        'id_producto': id_producto,
+                        'cantidad': cantidad,
+                        'precio_unitario': precio_unitario,
+                        'descuento': descuento,
+                        'valor': precio_total_detalle
+                    })
 
-                precio_total_detalle = (precio_unitario * cantidad) - descuento
-                total_precio_pedido += precio_total_detalle
-                total_descuento += descuento
+                    Detallepedidos.objects.create(
+                        id_pedido=nuevo_pedido,
+                        id_producto=producto_asociado,
+                        cantidad=cantidad,
+                        precio_unitario=precio_unitario,
+                        impuesto=impuesto,
+                        descuento=descuento
+                    )
 
-                detalles_factura.append({
-                    'id_producto': id_producto,
-                    'cantidad': cantidad,
-                    'precio_unitario': precio_unitario,
-                    'descuento': descuento,
-                    'valor': precio_total_detalle
-                })
+                subtotal = total_precio_pedido - total_descuento  # Subtotal = Total - Descuento
+                iva = subtotal * Decimal('0.12')  # Calcula el IVA
+                total_a_pagar = subtotal + iva  # Total a pagar = Subtotal + IVA
 
-                Detallepedidos.objects.create(
+                nuevo_pedido.precio = total_a_pagar  # Actualiza el precio con el total a pagar
+                nuevo_pedido.save()
+
+                nueva_factura = Factura.objects.create(
                     id_pedido=nuevo_pedido,
-                    id_producto=producto_asociado,
-                    cantidad=cantidad,
-                    precio_unitario=precio_unitario,
-                    impuesto=impuesto,
-                    descuento=descuento
+                    id_cliente=id_cliente,
+                    total=total_precio_pedido,
+                    iva=iva,
+                    descuento=total_descuento,
+                    subtotal=subtotal,
+                    a_pagar=total_a_pagar,
+                    estado='P',
+                    codigo_autorizacion=Codigoautorizacion.obtener_codigo_autorizacion_valido(),
+                    fecha_emision=datetime.now(),
                 )
 
-            subtotal = total_precio_pedido - total_descuento  # Subtotal = Total - Descuento
-            iva = subtotal * Decimal('0.12')  # Calcula el IVA
-            total_a_pagar = subtotal + iva  # Total a pagar = Subtotal + IVA
-
-            nuevo_pedido.precio = total_a_pagar  # Actualiza el precio con el total a pagar
-            nuevo_pedido.save()
-
-            nueva_factura = Factura.objects.create(
-                id_pedido=nuevo_pedido,
-                id_cliente=id_cliente,
-                total=total_precio_pedido,
-                iva=iva,
-                descuento=total_descuento,
-                subtotal=subtotal,
-                a_pagar=total_a_pagar,
-                estado='P',
-                codigo_autorizacion=Codigoautorizacion.obtener_codigo_autorizacion_valido(),
-                fecha_emision=datetime.now(),
-            )
-
-            for detalle in detalles_factura:
-                id_producto = detalle.get('id_producto')
-                producto_instance = get_object_or_404(Producto, id_producto=id_producto)
-                DetalleFactura.objects.create(
-                    id_factura=nueva_factura,
-                    id_producto=producto_instance,
-                    cantidad=detalle['cantidad'],
-                    precio_unitario=detalle['precio_unitario'],
-                    descuento=detalle['descuento'],
-                    valor=detalle['valor']
-                )
-            if(nuevo_pedido.metodo_de_pago=='X'):
-                PagosPas=PagosPasarela.objects.create(
-                    id_pedido = nuevo_pedido,
-                    estado = 'E',
-                    cantidad = nuevo_pedido.precio,
-                    hora_de_pago = fecha_pedido,
-                    codigo_unico = '102'
-                )
+                for detalle in detalles_factura:
+                    id_producto = detalle.get('id_producto')
+                    producto_instance = get_object_or_404(Producto, id_producto=id_producto)
+                    DetalleFactura.objects.create(
+                        id_factura=nueva_factura,
+                        id_producto=producto_instance,
+                        cantidad=detalle['cantidad'],
+                        precio_unitario=detalle['precio_unitario'],
+                        descuento=detalle['descuento'],
+                        valor=detalle['valor']
+                    )
+                if(nuevo_pedido.metodo_de_pago=='X'):
+                    PagosPas=PagosPasarela.objects.create(
+                        id_pedido = nuevo_pedido,
+                        estado = 'E',
+                        cantidad = nuevo_pedido.precio,
+                        hora_de_pago = fecha_pedido,
+                        codigo_unico = '102'
+                    )
 
 
-            return JsonResponse({'success': True, 'message': 'Pedido realizado con éxito.'})
+                return JsonResponse({'success': True, 'message': 'Pedido realizado con éxito.'})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'success': False, 'message': str(e)}, status=500)
