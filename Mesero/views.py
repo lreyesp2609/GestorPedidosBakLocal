@@ -38,6 +38,7 @@ class ListaPedidos(View):
 
                 pedido_data = {
                     'id_pedido': pedido.id_pedido,
+                    'id_sucursal':pedido.id_Sucursal.id_sucursal,
                     'cliente': {
                         'id_cliente': pedido.id_cliente.id_cliente,
                         'crazon_social': pedido.id_cliente.crazon_social,

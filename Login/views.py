@@ -400,8 +400,9 @@ class ObtenerCocinero(View):
     def get(self, request, *args, **kwargs):
         try:
             id_usuario = kwargs.get('id_usuario')
-            
             if id_usuario:
+                print("usuario")
+                print( kwargs.get('id_usuario'))
                 # Si se proporciona un nombre de usuario, intenta obtener un solo usuario
                 cuenta = get_object_or_404(Cuenta, id_cuenta=id_usuario)
                 cocinero = get_object_or_404(JefeCocina, id_cuenta=cuenta)
@@ -422,12 +423,15 @@ class ObtenerCocinero(View):
                 return JsonResponse({'error': 'ID de usuario no proporcionado'}, status=400)
 
         except Cuenta.DoesNotExist:
+            traceback.print_exc()
             return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
 
         except Clientes.DoesNotExist:
+            traceback.print_exc()
             return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
 
         except Exception as e:
+            traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
 
 @method_decorator(csrf_exempt, name='dispatch')
