@@ -10,6 +10,7 @@ import json
 from .models import Cuenta, Clientes
 from Ubicaciones.models import Ubicaciones
 from Mesero.models import Meseros
+from Empleados.models import JefeCocina
 from django.contrib.auth.hashers import make_password, check_password
 from Administrador.models import Administrador
 from rest_framework.views import APIView
@@ -380,6 +381,39 @@ class ObtenerUsuariosView(View):
                     'ubicacion1': ubicacion_data1 ,
                     'ubicacion2': ubicacion_data2 ,
                     'ubicacion3': ubicacion_data3 ,
+                }
+
+                return JsonResponse({'usuario': usuario_data})
+            else:
+                # Si no se proporciona un nombre de usuario, retorna un error
+                return JsonResponse({'error': 'ID de usuario no proporcionado'}, status=400)
+
+        except Cuenta.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+
+        except Clientes.DoesNotExist:
+            return JsonResponse({'error': 'Cliente no encontrado'}, status=404)
+
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
+class ObtenerCocinero(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            id_usuario = kwargs.get('id_usuario')
+            
+            if id_usuario:
+                # Si se proporciona un nombre de usuario, intenta obtener un solo usuario
+                cuenta = get_object_or_404(Cuenta, id_cuenta=id_usuario)
+                cocinero = get_object_or_404(JefeCocina, id_cuenta=cuenta)
+
+                usuario_data = {
+                    'id_cuenta': id_usuario,
+                    'nombre_usuario': cuenta.nombreusuario,
+                    'id_jefecocina':cocinero.id_jefecocina,
+                    'telefono': cocinero.telefono,
+                    'snombre': cocinero.nombre,
+                    'capellido': cocinero.apellido,
+                    'id_sucursal': cocinero.id_sucursal.id_sucursal ,
                 }
 
                 return JsonResponse({'usuario': usuario_data})
