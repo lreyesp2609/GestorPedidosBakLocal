@@ -76,7 +76,6 @@ class SucursalesListView(View):
                             for detalle in detalles_horario
                         ],
                     }
-
                 sucursal_info = {
                     'id_sucursal': sucursal.id_sucursal,
                     'srazon_social': sucursal.srazon_social,
@@ -474,9 +473,43 @@ class BuscarSucursalPorUbicacion(View):
                 polygon = Polygon(polygon_coordinates)
                 point = Point(latitud, longitud)
                 if point.within(polygon):
-                    sucursal_dict = model_to_dict(sucursal)
-                    print("Si se devuelve")
-                    return JsonResponse({'sucursal': sucursal_dict})
+                    horario_info = None
+                    if sucursal.id_horarios_id:
+                        horario = Horariossemanales.objects.get(id_horarios=sucursal.id_horarios.id_horarios)
+                        detalles_horario = DetalleHorariosSemanales.objects.filter(id_horarios=horario)
+                        horario_info = {
+                            'nombreh': horario.nombreh,
+                            'detalles': [
+                                {
+                                    'dia': detalle.dia,
+                                    'horainicio': detalle.horainicio.strftime('%H:%M:%S'),
+                                    'horafin': detalle.horafin.strftime('%H:%M:%S'),
+                                }
+                                for detalle in detalles_horario
+                            ],
+                        }
+                        serialized_sucursales = []
+                        sucursal_info = {
+                            'id_sucursal': sucursal.id_sucursal,
+                            'srazon_social': sucursal.srazon_social,
+                            'sruc': sucursal.sruc,
+                            'sestado': sucursal.sestado,
+                            'scapacidad': sucursal.scapacidad,
+                            'scorreo': sucursal.scorreo,
+                            'stelefono': sucursal.stelefono,
+                            'sdireccion': sucursal.sdireccion,
+                            'snombre': sucursal.snombre,
+                            'fsapertura': sucursal.fsapertura.strftime('%Y-%m-%d') if sucursal.fsapertura else None,
+                            'id_horarios': sucursal.id_horarios.id_horarios if hasattr(sucursal, 'id_horarios') else None,
+                            'firmaelectronica': sucursal.firmaelectronica,
+                            'id_empresa': sucursal.id_empresa_id,
+                            'cantidadempleados':cantidaEmp(sucursal.id_sucursal),
+                            'horario': horario_info,
+                        }
+                        serialized_sucursales.append(sucursal_info)
+
+                        print("Si se devuelve")
+                    return JsonResponse({'sucursal': serialized_sucursales})
             return JsonResponse({'no': "no hay"})
         except Sucursales.DoesNotExist:
             traceback.print_exc()
