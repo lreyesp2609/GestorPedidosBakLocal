@@ -378,6 +378,7 @@ class ObtenerUsuariosView(View):
                     'snombre': cliente.snombre,
                     'capellido': cliente.capellido,
                     'ruc_cedula': cliente.ruc_cedula,
+                    'cpuntos':cliente.cpuntos,
                     'ubicacion1': ubicacion_data1 ,
                     'ubicacion2': ubicacion_data2 ,
                     'ubicacion3': ubicacion_data3 ,
