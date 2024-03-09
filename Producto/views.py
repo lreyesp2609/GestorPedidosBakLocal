@@ -649,7 +649,8 @@ class FabricarComponente(View):
                 componente= Componente.objects.get(id_componente=id_componente_generado)
                 newmovimiento=MovimientoInventario.objects.create(
                     id_cuenta=Cuenta.objects.get(id_cuenta=1),
-                    tipomovimiento='P'
+                    tipomovimiento='P',
+                    sestado=1
                 )
                 for compo in lista_componentes:
                     print('Recorrer lista?')
@@ -983,75 +984,107 @@ class procesar_productos(View):
                     for producto in productos:
                         id_producto = int(producto['id_producto'])
                         cantidad = int(producto['cantidad'])
-                        self.procesar_producto(id_producto, cantidad, id_bodega,pedido)
+                        if(self.procesar_producto(id_producto, cantidad, id_bodega,pedido)==0):
+                            return JsonResponse({'error': 'fallo'}, status=400)
                 pedido.estado_del_pedido='P'
-                precio_str = str(pedido.precio).replace('€','')
-                print(pedido.precio)
-                print(precio_str)
-                print(float(precio_str.replace(',', '.', 1)))
-                precio_decimal = float(precio_str.replace(',', '.', 1)  )
-                pedido.precio = precio_decimal
+                print("aqui llegamos")
                 pedido.save()
                 response_data = {'status': 'success', 'message': 'Productos procesados correctamente.'}
-
                 return JsonResponse(response_data, status=200)
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=400)
-
+    @transaction.atomic
     def procesar_producto(self, id_pro, cantidad, idbodega,idpedido):
         print('holi')
-        producto = Producto.objects.get(id_producto=id_pro)
-        # Verificar si existe un ensamble para el producto
-        ensambles = EnsambleProducto.objects.filter(id_producto=producto)
-        bodega = Bodegas.objects.get(id_bodega=idbodega)
-        if not ensambles.exists():
-            newmovimiento = MovimientoInventario.objects.create(
-                id_cuenta=Cuenta.objects.get(id_cuenta=1),
-                tipomovimiento='P',
-                id_pedido=idpedido,
-                id_bodega=bodega,
-                sestado='1'
-            )
-            inventario_producto = Inventario.objects.get(id_producto=producto, id_bodega=bodega)
-            detalle= DetalleMovimientoInventario.objects.create(
-                id_movimientoinventario=newmovimiento,
-                id_producto=producto,
-                cantidad=cantidad,
-                tipo='S'
-            )
-            inventario_producto.cantidad_disponible -= cantidad
-            inventario_producto.save()
-            return
+        try:
+            with transaction.atomic():
+                producto = Producto.objects.get(id_producto=id_pro)
+                # Verificar si existe un ensamble para el producto
+                ensambles = EnsambleProducto.objects.filter(id_producto=producto)
+                bodega = Bodegas.objects.get(id_bodega=idbodega)
+                if not ensambles.exists():
+                    newmovimiento = MovimientoInventario.objects.create(
+                        id_cuenta=Cuenta.objects.get(id_cuenta=1),
+                        tipomovimiento='P',
+                        id_pedido=idpedido,
+                        id_bodega=bodega,
+                        sestado='1'
+                    )
+                    inventario_producto = Inventario.objects.get(id_producto=producto, id_bodega=bodega)
+                    detalle= DetalleMovimientoInventario.objects.create(
+                        id_movimientoinventario=newmovimiento,
+                        id_producto=producto,
+                        cantidad=cantidad,
+                        tipo='S'
+                    )
+                    inventario_producto.cantidad_disponible -= cantidad
+                    inventario_producto.save()
+                    return 1
 
-        # Si hay ensamble, proceder con el procesamiento
-        ensamble = ensambles.first()
-        detalles = DetalleEnsambleProducto.objects.filter(id_emsamblep=ensamble)
-        newmovimiento = MovimientoInventario.objects.create(
-            id_cuenta=Cuenta.objects.get(id_cuenta=1),
-            tipomovimiento='P',
-            id_pedido=idpedido,
-            id_bodega=bodega,
-            sestado='1'
-        )
+                # Si hay ensamble, proceder con el procesamiento
+                ensamble = ensambles.first()
+                detalles = DetalleEnsambleProducto.objects.filter(id_emsamblep=ensamble)
+                newmovimiento = MovimientoInventario.objects.create(
+                    id_cuenta=Cuenta.objects.get(id_cuenta=1),
+                    tipomovimiento='P',
+                    id_pedido=idpedido,
+                    id_bodega=bodega,
+                    sestado='1'
+                )
 
-        for detalle in detalles:
-            print('holixd')
-            print('Cantidad:')
-            print(cantidad)
-            detallem= DetalleMovimientoInventario.objects.create(
-                id_movimientoinventario=newmovimiento,
-                id_articulo=detalle.id_componentehijo,
-                cantidad=detalle.cantidadhijo,
-                tipo='S'
-            )
-            componente = detalle.id_componentehijo
-            cantidaddet = detalle.cantidadhijo * cantidad
-            inventario_componente = Inventario.objects.get(id_componente=componente, id_bodega=bodega)
-            print(inventario_componente.cantidad_disponible)
-            inventario_componente.cantidad_disponible -= cantidaddet * cantidad
-            inventario_componente.save()
-        print(f'Procesando producto con ID {producto} y cantidad {cantidad}')
+                for detalle in detalles:
+                    print('holixd')
+                    print('Cantidad:')
+                    print(cantidad)
+                    detallem= DetalleMovimientoInventario.objects.create(
+                        id_movimientoinventario=newmovimiento,
+                        id_articulo=detalle.id_componentehijo,
+                        cantidad=detalle.cantidadhijo * cantidad,
+                        tipo='S'
+                    )
+                    componente = detalle.id_componentehijo
+                    cantidaddet = detalle.cantidadhijo * cantidad
+                    print('busca:')
+                    print(componente.nombre)
+                    inventario_componente = Inventario.objects.get(id_componente=componente, id_bodega=bodega)
+                    print("Tenemos:")
+                    print(inventario_componente.cantidad_disponible)
+                    print("Queremos quitar:")
+                    print(cantidaddet * cantidad)
+                    print("Ya que")
+                    print(cantidaddet)
+                    print("*")
+                    print(cantidad)
+                    inventario_componente.cantidad_disponible -= cantidaddet
+                    inventario_componente.save()
+                invent = Inventario.objects.filter(id_producto=producto, id_bodega=bodega)
+                if not invent.exists:
+                    invent2=Inventario.objects.create(
+                        id_bodega = bodega,
+                        id_producto = producto,
+                        costo_unitario = 0,
+                        id_um = producto.id_um,
+                        stock_minimo = 0,
+                        cantidad_disponible = 0
+                    )
+                detentradaProducto= DetalleMovimientoInventario.objects.create(
+                    id_movimientoinventario=newmovimiento,
+                    id_producto=producto,
+                    cantidad=cantidad,
+                    tipo='E'
+                )
+                detSalidaProducto= DetalleMovimientoInventario.objects.create(
+                    id_movimientoinventario=newmovimiento,
+                    id_producto=producto,
+                    cantidad=cantidad,
+                    tipo='S'
+                )
+                return 1
+                print(f'Procesando producto con ID {producto} y cantidad {cantidad}')
+        except Exception as e:
+            traceback.print_exc()
+            return 0
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearEnsambleUnidadMedida(View):
     @transaction.atomic
