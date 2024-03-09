@@ -650,7 +650,8 @@ class FabricarComponente(View):
                 newmovimiento=MovimientoInventario.objects.create(
                     id_cuenta=Cuenta.objects.get(id_cuenta=1),
                     tipomovimiento='P',
-                    sestado=1
+                    sestado=1,
+                    id_bodega=bodega
                 )
                 for compo in lista_componentes:
                     print('Recorrer lista?')
