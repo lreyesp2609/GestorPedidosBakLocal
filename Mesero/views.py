@@ -1298,6 +1298,7 @@ class ListaPedidosProductoReportes(View):
                     'id_pedido': pedido.id_pedido,
                     'id_sucursal': id_sucursal_pedido,
                     'nombre_sucursal': nombre_sucursal_pedido,
+                    'nombre': detalle_pedido.id_producto.nombreproducto,
                     'cliente': {
                         'id_cliente': pedido.id_cliente.id_cliente,
                         'crazon_social': pedido.id_cliente.crazon_social,
@@ -1387,6 +1388,7 @@ class ListaPedidosIdProductoReportes(View):
                     'id_pedido': pedido.id_pedido,
                     'id_sucursal': id_sucursal_pedido,
                     'nombre_sucursal': nombre_sucursal_pedido,
+                    'nombre': detalle_pedido.id_producto.nombreproducto,
                     'cliente': {
                         'id_cliente': pedido.id_cliente.id_cliente,
                         'crazon_social': pedido.id_cliente.crazon_social,
