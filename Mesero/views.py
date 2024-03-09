@@ -215,7 +215,7 @@ class TomarPedido(View):
                 for detalle_pedido_data in detalles_pedido['detalles_pedido']:
                     id_producto_id = detalle_pedido_data.get('id_producto')
                     id_combo_id = detalle_pedido_data.get('id_combo')
-                    precio_unitario = detalle_pedido_data['precio_unitario']
+                    precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
                     # Convertir el precio_unitario_raw a un número decimal
                     # Impuesto establecido en 0 para evitar que se calcule
                     impuesto = Decimal(0)
@@ -276,7 +276,7 @@ class TomarPedido(View):
                     id_producto_id = detalle_pedido_data.get('id_producto')
                     id_combo_id = detalle_pedido_data.get('id_combo')
                     cantidad = Decimal(detalle_pedido_data['cantidad'])
-                    precio_unitario = detalle_pedido_data['precio_unitario']
+                    precio_unitario = Decimal(detalle_pedido_data['precio_unitario'])
                     descuento = Decimal(detalle_pedido_data.get('descuento', 0))
                     valor = (precio_unitario * cantidad) - descuento
 
