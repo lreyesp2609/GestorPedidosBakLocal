@@ -62,6 +62,7 @@ class ListaPedidos(View):
 
             return JsonResponse({'pedidos': data})
         except Exception as e:
+            traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=500)
         
 @method_decorator(csrf_exempt, name='dispatch')
@@ -195,6 +196,7 @@ class TomarPedido(View):
                     estado_del_pedido=estado_del_pedido,
                     estado_pago=estado_pago,
                     observacion_del_cliente=observacion_del_cliente,
+                    id_sucursal=mesero_instance.id_sucursal.id_sucursal
                 )
 
                 
@@ -328,7 +330,7 @@ class TomarPedidoSinMesa(View):
                 observacion_del_cliente = request.POST.get('observacion_del_cliente')
                 
                 cliente_instance = get_object_or_404(Clientes, id_cliente=id_cliente_id)
-
+                mesero_instance = get_object_or_404(Meseros, id_mesero=id_mesero)
                 nuevo_pedido = Pedidos.objects.create(
                     id_cliente=cliente_instance,
                     precio=0,
@@ -339,8 +341,9 @@ class TomarPedidoSinMesa(View):
                     fecha_entrega=fecha_entrega,
                     estado_del_pedido=estado_del_pedido,
                     observacion_del_cliente=observacion_del_cliente,
+                    id_sucursal=mesero_instance.id_sucursal.id_sucursal
                 )
-                mesero_instance = get_object_or_404(Meseros, id_mesero=id_mesero)
+                
                 detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
                 detalles_pedido = json.loads(detalles_pedido_raw)
                 total_precio_pedido = Decimal(0)

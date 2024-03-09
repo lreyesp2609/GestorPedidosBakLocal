@@ -158,8 +158,6 @@ class RealizarPedidoView(View):
             estado_pago = request.POST.get('estado_pago', 'En revisión')
             imagen_archivo = request.FILES.get('imagen')
             hora = (request.POST.get('fecha_hora'))
-            if sucursal:
-                sucursal=Sucursales.objects.first().id_sucursal
             ubicacion=None
             if latitud:
                 ubicacion= Ubicaciones.objects.create(
