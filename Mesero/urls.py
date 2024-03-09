@@ -26,4 +26,7 @@ urlpatterns = [
     path('listapedidostipoproducto/', ListaPedidosTipoPReportes.as_view(), name='listapagadostipo'),
     path('listapedidostipoproductos/<int:id_tipoproducto>/', ListaTipos.as_view(), name='listapagadostipoid'),
     path('factura_detalles_nota_credito/<int:id_factura>/', FacturaDetallesNotaCredito.as_view(), name='factura_detalles_nota_credito'),
+    path('lista_reverso_factura/', ReversoFacturaReporte.as_view(), name='reversofactura'),
+    path('factura_v_report/', FacturasConCodigoReport.as_view(), name='facturavalida_V'),
+    path('factura_n_report/', FacturasSinCodigoReport.as_view(), name='facturavalida_n'),
 ]

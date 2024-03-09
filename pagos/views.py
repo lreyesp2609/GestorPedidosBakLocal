@@ -123,6 +123,7 @@ class ConsultarPagos(View):
                 {
                     'id_pago': pago.id_pago,
                     'idempleado': pago.idempleado.id_cuenta,
+                    'nombre': pago.idempleado.nombreusuario,
                     'cantidad': str(pago.cantidad),  # Convertir el Decimal a cadena para evitar errores de serialización JSON
                     'tipopago': pago.tipopago,
                     'idperiodo': pago.idperiodo.id_periodo,

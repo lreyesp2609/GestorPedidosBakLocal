@@ -23,7 +23,8 @@ class CrearProveedor(View):
             if Proveedores.objects.filter(telefonoproveedor=telefono_proveedor).exists():
                 raise ValueError("Ya existe un proveedor con ese número de teléfono")
 
-            if Proveedores.objects.filter(correoproveedor=correo_proveedor).exists():
+            if correo_proveedor:
+             if Proveedores.objects.filter(correoproveedor=correo_proveedor).exists():
                 raise ValueError("Ya existe un proveedor con ese correo electrónico")
 
 
