@@ -196,7 +196,7 @@ class TomarPedido(View):
                     estado_del_pedido=estado_del_pedido,
                     estado_pago=estado_pago,
                     observacion_del_cliente=observacion_del_cliente,
-                    id_sucursal=mesero_instance.id_sucursal.id_sucursal
+                    id_Sucursal=mesero_instance.id_sucursal
                 )
 
                 
@@ -341,7 +341,7 @@ class TomarPedidoSinMesa(View):
                     fecha_entrega=fecha_entrega,
                     estado_del_pedido=estado_del_pedido,
                     observacion_del_cliente=observacion_del_cliente,
-                    id_sucursal=mesero_instance.id_sucursal.id_sucursal
+                    id_Sucursal=mesero_instance.id_sucursal
                 )
                 
                 detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
