@@ -347,11 +347,10 @@ class ObtenerUsuariosView(View):
     def get(self, request, *args, **kwargs):
         try:
             id_usuario = kwargs.get('id_usuario')
-            
             if id_usuario:
                 # Si se proporciona un nombre de usuario, intenta obtener un solo usuario
-                cuenta = get_object_or_404(Cuenta, id_cuenta=id_usuario)
-                cliente = get_object_or_404(Clientes, id_cuenta=cuenta)
+                cuenta =Cuenta.objects.get(id_cuenta=id_usuario)
+                cliente = Clientes.objects.get(id_cuenta=cuenta)
 
                 ubicacion_data1 = {
                     'latitud': cliente.id_ubicacion1.latitud  if cliente.id_ubicacion1 else None,
