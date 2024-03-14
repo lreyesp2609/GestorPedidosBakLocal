@@ -378,6 +378,7 @@ class crearGeosector(View):
                     sestado=1,
                 )
             else:
+                
                 sucursal = Sucursales.objects.get(id_sucursal=id_sucursal)
                 geosector = Geosectores.objects.create(
                     secnombre=secnombre,
