@@ -372,7 +372,7 @@ class crearGeosector(View):
                 geosector = Geosectores.objects.create(
                     secnombre=secnombre,
                     secdescripcion=secdescripcion,
-                    fechacreaciong=datetime.now(timezone.utc),
+                    fechacreaciong=datetime.now(),
                     secestado=1,
                     sectipo='R',
                     sestado=1,
@@ -383,7 +383,7 @@ class crearGeosector(View):
                 geosector = Geosectores.objects.create(
                     secnombre=secnombre,
                     secdescripcion=secdescripcion,
-                    fechacreaciong=datetime.now(timezone.utc),
+                    fechacreaciong=datetime.now(),
                     secestado=1,
                     sectipo='C',
                     sestado=1,
@@ -520,4 +520,75 @@ class BuscarSucursalPorUbicacion(View):
             return JsonResponse({'error': 'La sucursal no existe'}, status=404)
         except Exception as e:
             traceback.print_exc() 
+            return JsonResponse({'error': str(e)}, status=400)
+@method_decorator(csrf_exempt, name='dispatch')
+class ListarRutas(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            rutas = Geosectores.objects.filter(sectipo='R')
+            rutas_data = []
+            for ruta in rutas:
+                detalles = DetalleGeosector.objects.filter(id_geosector=ruta)
+                ubicaciones = []
+                for detalle in detalles:
+                    ubicacion = Ubicaciones.objects.get(id_ubicacion=detalle.id_ubicacion.id_ubicacion)
+                    ubicaciones.append({
+                        'latitud': ubicacion.latitud,
+                        'longitud': ubicacion.longitud,
+                        'descripcion': ubicacion.udescripcion
+                    })
+                rutas_data.append({
+                    'id_geosector': ruta.id_geosector,
+                    'secnombre': ruta.secnombre,
+                    'fechacreaciong':ruta.fechacreaciong,
+                    'secdescripcion': ruta.secdescripcion,
+                    'ubicaciones': ubicaciones
+                })
+
+            return JsonResponse({'rutas': rutas_data})
+        except Geosectores.DoesNotExist:
+            return JsonResponse({'error': 'No hay rutas'}, status=404)
+        except Exception as e:
+            traceback.print_exc() 
+            return JsonResponse({'error': str(e)}, status=400)
+
+@method_decorator(csrf_exempt, name='dispatch')
+class editarGeosector(View):
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            with transaction.atomic():
+                idGeo=request.POST.get('id_geosector')
+                secnombre = request.POST.get('secnombre')
+                secdescripcion = request.POST.get('secdescripcion')
+                id_sucursal = request.POST.get('id_sucursal')
+                datos_geosector_str = request.POST.get('datosGeosector','[]')
+                tipo=request.POST.get('tipo')
+                datos_geosector = json.loads(datos_geosector_str)
+                geosectorActual=Geosectores.objects.get(id_geosector=idGeo)
+                if id_sucursal:
+                    sucursal = Sucursales.objects.get(id_sucursal=id_sucursal)
+                    sucursal.id_geosector = geosectorActual
+                    sucursal.save()
+                geosectorActual.secnombre=secnombre
+                geosectorActual.secdescripcion=secdescripcion
+                geosectorActual.sectipo=tipo
+                geosectorActual.sestado=1
+                geosectorActual.save()
+                detallesGeo=DetalleGeosector.objects.filter(id_geosector=geosectorActual)
+                for detalle in detallesGeo:
+                    detalle.id_ubicacion.delete()
+                    detalle.delete()
+                for ubicacion_data in datos_geosector:
+                    ubicacion = Ubicaciones.objects.create(
+                        latitud=ubicacion_data['latitude'],
+                        longitud=ubicacion_data['longitude'],
+                        sestado=1,
+                    )
+                    DetalleGeosector.objects.create(
+                        id_geosector=geosectorActual,
+                        id_ubicacion=ubicacion,
+                    )
+                return JsonResponse({'mensaje': 'Geosector editado con éxito'})
+        except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
