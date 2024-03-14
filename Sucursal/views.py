@@ -365,37 +365,40 @@ class crearGeosector(View):
             secdescripcion = request.POST.get('secdescripcion')
             id_sucursal = request.POST.get('id_sucursal')
             datos_geosector_str = request.POST.get('datosGeosector','[]')
-
-            # Parsear datos_geosector como JSON
+            tipo=request.POST.get('tipo')
             datos_geosector = json.loads(datos_geosector_str)
-            sucursal = Sucursales.objects.get(id_sucursal=id_sucursal)
             # Crear geosector con fecha actual
-            geosector = Geosectores.objects.create(
-                secnombre=secnombre,
-                secdescripcion=secdescripcion,
-                fechacreaciong=datetime.now(timezone.utc),
-                secestado=1,
-                sectipo='C',
-                sestado=1,
-            )
-            sucursal.id_geosector = geosector
-            sucursal.save()
-            # Asociar el geosector a la sucursal
-            
-
-            # Crear ubicaciones y detalle_geosector
+            if tipo=='R':
+                geosector = Geosectores.objects.create(
+                    secnombre=secnombre,
+                    secdescripcion=secdescripcion,
+                    fechacreaciong=datetime.now(timezone.utc),
+                    secestado=1,
+                    sectipo='R',
+                    sestado=1,
+                )
+            else:
+                sucursal = Sucursales.objects.get(id_sucursal=id_sucursal)
+                geosector = Geosectores.objects.create(
+                    secnombre=secnombre,
+                    secdescripcion=secdescripcion,
+                    fechacreaciong=datetime.now(timezone.utc),
+                    secestado=1,
+                    sectipo='C',
+                    sestado=1,
+                )
+                sucursal.id_geosector = geosector
+                sucursal.save()
             for ubicacion_data in datos_geosector:
                 ubicacion = Ubicaciones.objects.create(
                     latitud=ubicacion_data['latitude'],
                     longitud=ubicacion_data['longitude'],
                     sestado=1,
                 )
-
                 DetalleGeosector.objects.create(
                     id_geosector=geosector,
                     id_ubicacion=ubicacion,
                 )
-
             return JsonResponse({'mensaje': 'Geosector y sucursal creados con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
