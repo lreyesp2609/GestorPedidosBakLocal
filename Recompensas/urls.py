@@ -10,4 +10,6 @@ urlpatterns = [
     path('editar_recompensa_producto/<int:recompensa_producto_id>/', EditarRecompensaProducto.as_view(), name='editar_recompensa_producto'),
     path('listar_productos_con_recompensas/', ListarProductosConRecompensas.as_view(), name='listar_productos_con_recompensas'),
     path('listar_combos_con_recompensas/', ListarCombosConRecompensas.as_view(), name='listar_combos_con_recompensas'),
+    path('Restar_puntos/<int:id_usuario>/', RestarPuntos.as_view(), name='Restar_puntos'),
+
 ]

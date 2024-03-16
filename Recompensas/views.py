@@ -143,3 +143,31 @@ class ListarCombosConRecompensas(View):
 
         
 
+@method_decorator(csrf_exempt, name='dispatch')
+class RestarPuntos(View):
+    @transaction.atomic
+    def post(self, request, id_usuario, *args, **kwargs):
+        try:
+            # Asegúrate de que id_usuario sea pasado correctamente desde la URL
+            cliente = Clientes.objects.get(id_cuenta=id_usuario)
+
+            recompensa_producto_id = request.POST.get('id_recompensa_producto')
+            recompensa_producto = RecompensasProductos.objects.get(id_recompensaproducto=recompensa_producto_id)
+
+            puntos_recompensa_producto = int(request.POST.get('puntos_recompensa_producto'))
+
+            # Asegúrate de que no se resten más puntos de los que tiene el cliente
+            if cliente.cpuntos - puntos_recompensa_producto >= 0:
+                # Establece los puntos en 0 en lugar de restarlos
+                cliente.cpuntos = 0
+                cliente.save()
+                return JsonResponse({'mensaje': 'Se han restado los puntos con éxito'})
+            else:
+                return JsonResponse({'error': 'Puntos insuficientes'}, status=400)
+
+        except Clientes.DoesNotExist:
+            return JsonResponse({'error': 'Usuario no encontrado'}, status=404)
+        except RecompensasProductos.DoesNotExist:
+            return JsonResponse({'error': 'Recompensa de producto no encontrada'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
