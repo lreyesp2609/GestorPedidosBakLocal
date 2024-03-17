@@ -1,4 +1,5 @@
 import base64
+from io import BytesIO
 from django.utils import timezone
 import re
 from django.contrib.auth.decorators import login_required
@@ -157,6 +158,7 @@ class RealizarPedidoView(View):
             longitud = request.POST.get('longitud')
             estado_pago = request.POST.get('estado_pago', 'En revisión')
             imagen_archivo = request.FILES.get('imagen')
+            imagen_base64 = request.POST.get('imagen_base64')
             hora = (request.POST.get('fecha_hora'))
             ubicacion=None
             if latitud:
@@ -170,9 +172,16 @@ class RealizarPedidoView(View):
                 try:
                     image_read = imagen_archivo.read()
                     image_64_encode = base64.b64encode(image_read)
-                    image_encoded = image_64_encode.decode('utf-8')
-                except UnidentifiedImageError as img_error:
-                    return JsonResponse({'error': f"Error al procesar imagen: {str(img_error)}"}, status=400)
+                except Exception as img_error:
+                    return JsonResponse({'error': f"Error al procesar imagen de archivo: {str(img_error)}"}, status=400)
+            elif imagen_base64:
+                try:
+                    image_data = base64.b64decode(imagen_base64)
+                    image = Image.open(BytesIO(image_data))
+                    image_64_encode = base64.b64encode(image_data)
+                except Exception as img_error:
+                    return JsonResponse({'error': f"Error al procesar imagen base64: {str(img_error)}"}, status=400)
+
 
             detalles_pedido_raw = request.POST.get('detalles_pedido', '{}')
             detalles_pedido = json.loads(detalles_pedido_raw)
