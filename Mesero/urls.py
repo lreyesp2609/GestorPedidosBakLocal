@@ -29,4 +29,7 @@ urlpatterns = [
     path('lista_reverso_factura/', ReversoFacturaReporte.as_view(), name='reversofactura'),
     path('factura_v_report/', FacturasConCodigoReport.as_view(), name='facturavalida_V'),
     path('factura_n_report/', FacturasSinCodigoReport.as_view(), name='facturavalida_n'),
+    path('listapedidosmes/', ListaPedidosMes.as_view(), name='pedidosmes'),
+    path('listaventasmeseros/', MayorVentas.as_view(), name='MayorVentas'),
+    path('listaventasmesero/', MayorVentasSucursal.as_view(), name='MayorVentasSucursal'),
 ]

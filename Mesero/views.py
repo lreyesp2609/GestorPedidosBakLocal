@@ -13,6 +13,7 @@ from decimal import Decimal
 from Mesa.models import Mesas
 from Inventario.models import *
 from .models import Sucursales
+from django.db.models import Sum
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidos(View):
@@ -1839,5 +1840,259 @@ class FacturasSinCodigoReport(View):
                 response_data.append(factura_data)
 
             return JsonResponse({'reverso': response_data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+@method_decorator(csrf_exempt, name='dispatch')
+class ListaPedidosMes(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén los parámetros de consulta de meses y año
+            start_month = int(request.GET.get('start_month'))
+            end_month = int(request.GET.get('end_month'))
+            start_year = int(request.GET.get('start_year'))
+            end_year = int(request.GET.get('end_year'))
+
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos = Pedidos.objects.filter(
+                estado_pago='Pagado',
+                fecha_pedido__month__gte=start_month,
+                fecha_pedido__month__lte=end_month,
+                fecha_pedido__year__gte=start_year,
+                fecha_pedido__year__lte=end_year
+            ).exclude(factura__id_mesero=None)
+
+            # Formatea los datos
+            data = []
+            for pedido in pedidos:
+                detalle_pedido_data = []
+                for detalle_pedido in pedido.detallepedidos_set.all():
+                    producto_data = {
+                        'id_producto': detalle_pedido.id_producto.id_producto,
+                        'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                        'cantidad': detalle_pedido.cantidad,
+                        'precio_unitario': detalle_pedido.precio_unitario,
+                        'impuesto': detalle_pedido.impuesto,
+                        'descuento': detalle_pedido.descuento,
+                    }
+                    detalle_pedido_data.append(producto_data)
+
+                # Obtén el ID del mesero asociado al pedido
+                id_mesero = pedido.factura_set.first().id_mesero.id_mesero
+
+                pedido_data = {
+                    'id_pedido': pedido.id_pedido,
+                    'cliente': {
+                        'id_cliente': pedido.id_cliente.id_cliente,
+                        'crazon_social': pedido.id_cliente.crazon_social,
+                        'ctelefono': pedido.id_cliente.ctelefono,
+                        'snombre': pedido.id_cliente.snombre,
+                        'capellido': pedido.id_cliente.capellido,
+                        'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                    },
+                    'id_mesero': id_mesero,  
+                    'nombre_mesero': pedido.factura_set.first().id_mesero.nombre + ' ' + pedido.factura_set.first().id_mesero.apellido,
+                    'precio': pedido.precio,
+                    'tipo_de_pedido': pedido.tipo_de_pedido,
+                    'metodo_de_pago': pedido.metodo_de_pago,
+                    'puntos': pedido.puntos,
+                    'fecha_pedido': pedido.fecha_pedido,
+                    'fecha_entrega': pedido.fecha_entrega,
+                    'estado_del_pedido': pedido.estado_del_pedido,
+                    'observacion_del_cliente': pedido.observacion_del_cliente,
+                    'detalle_pedido': detalle_pedido_data,
+                }
+
+                data.append(pedido_data)
+
+            return JsonResponse({'pedidos': data})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+@method_decorator(csrf_exempt, name='dispatch')
+class MayorVentas(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén los parámetros de consulta de meses y año
+            start_month = int(request.GET.get('start_month'))
+            end_month = int(request.GET.get('end_month'))
+            start_year = int(request.GET.get('start_year'))
+            end_year = int(request.GET.get('end_year'))
+
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y mesero
+            pedidos = Pedidos.objects.filter(
+                estado_pago='Pagado',
+                fecha_pedido__month__gte=start_month,
+                fecha_pedido__month__lte=end_month,
+                fecha_pedido__year__gte=start_year,
+                fecha_pedido__year__lte=end_year
+            ).exclude(factura__id_mesero=None)
+
+            # Obtén todos los meseros
+            meseros = Meseros.objects.all()
+
+            # Variables para mantener el mesero con el mayor total de ventas y su total
+            mesero_mayor_ventas = None
+            total_ventas_max = 0
+
+            # Iterar sobre cada mesero para encontrar el que tenga el mayor total de ventas
+            for mesero in meseros:
+                # Obtener todos los pedidos pagados del mesero actual
+                pedidos_mesero = pedidos.filter(factura__id_mesero=mesero)
+
+                # Calcular el total de ventas del mesero actual
+                total_ventas_mesero = pedidos_mesero.aggregate(total_ventas=Sum('precio'))['total_ventas'] or 0
+
+                # Actualizar el mesero con el mayor total de ventas si corresponde
+                if total_ventas_mesero > total_ventas_max:
+                    total_ventas_max = total_ventas_mesero
+                    mesero_mayor_ventas = mesero
+
+            # Formatear los datos del mesero con el mayor total de ventas
+            if mesero_mayor_ventas:
+                # Obtener todos los pedidos pagados del mesero con el mayor total de ventas
+                pedidos_mesero_mayor_ventas = pedidos.filter(factura__id_mesero=mesero_mayor_ventas)
+
+                # Formatear los datos de los pedidos del mesero con el mayor total de ventas
+                pedidos_data = []
+                for pedido in pedidos_mesero_mayor_ventas:
+                    detalle_pedido_data = []
+                    for detalle_pedido in pedido.detallepedidos_set.all():
+                        producto_data = {
+                            'id_producto': detalle_pedido.id_producto.id_producto,
+                            'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                            'cantidad': detalle_pedido.cantidad,
+                            'precio_unitario': detalle_pedido.precio_unitario,
+                            'impuesto': detalle_pedido.impuesto,
+                            'descuento': detalle_pedido.descuento,
+                        }
+                        detalle_pedido_data.append(producto_data)
+
+                    pedido_data = {
+                        'id_pedido': pedido.id_pedido,
+                        'cliente': {
+                            'id_cliente': pedido.id_cliente.id_cliente,
+                            'crazon_social': pedido.id_cliente.crazon_social,
+                            'ctelefono': pedido.id_cliente.ctelefono,
+                            'snombre': pedido.id_cliente.snombre,
+                            'capellido': pedido.id_cliente.capellido,
+                            'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                        },
+                        'precio': pedido.precio,
+                        'tipo_de_pedido': pedido.tipo_de_pedido,
+                        'metodo_de_pago': pedido.metodo_de_pago,
+                        'puntos': pedido.puntos,
+                        'fecha_pedido': pedido.fecha_pedido,
+                        'fecha_entrega': pedido.fecha_entrega,
+                        'estado_del_pedido': pedido.estado_del_pedido,
+                        'observacion_del_cliente': pedido.observacion_del_cliente,
+                        'detalle_pedido': detalle_pedido_data,
+                    }
+
+                    pedidos_data.append(pedido_data)
+
+                # Crear un diccionario con los datos del mesero con el mayor total de ventas
+                mesero_data = {
+                    'id_mesero': mesero_mayor_ventas.id_mesero,
+                    'nombre_mesero': mesero_mayor_ventas.nombre + ' ' + mesero_mayor_ventas.apellido,
+                    'total_ventas': total_ventas_max,
+                    'pedidos': pedidos_data
+                }
+
+                return JsonResponse({'mesero_mayor_ventas': mesero_data})
+            else:
+                return JsonResponse({'message': 'No hay meseros con pedidos pagados'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class MayorVentasSucursal(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén los parámetros de consulta de meses y año
+            start_month = int(request.GET.get('start_month'))
+            end_month = int(request.GET.get('end_month'))
+            start_year = int(request.GET.get('start_year'))
+            end_year = int(request.GET.get('end_year'))
+
+            # Obtén la lista de pedidos con información del cliente, detalle del pedido y sucursal
+            pedidos = Pedidos.objects.filter(
+                estado_pago='Pagado',
+                fecha_pedido__month__gte=start_month,
+                fecha_pedido__month__lte=end_month,
+                fecha_pedido__year__gte=start_year,
+                fecha_pedido__year__lte=end_year
+            )
+
+            # Obtén todas las sucursales
+            sucursales = Sucursales.objects.all()
+
+            # Variables para mantener la sucursal con el mayor total de ventas y su total
+            mesero_mayor_ventas = None
+            total_ventas_max = 0
+
+            # Iterar sobre cada sucursal para encontrar la que tenga el mayor total de ventas
+            for sucursal in sucursales:
+                # Obtener todos los pedidos pagados de la sucursal actual
+                pedidos_sucursal = pedidos.filter(id_Sucursal=sucursal)
+
+                # Calcular el total de ventas de la sucursal actual
+                total_ventas_sucursal = pedidos_sucursal.aggregate(total_ventas=Sum('precio'))['total_ventas'] or 0
+
+                # Actualizar la sucursal con el mayor total de ventas si corresponde
+                if total_ventas_sucursal > total_ventas_max:
+                    total_ventas_max = total_ventas_sucursal
+                    mesero_mayor_ventas = sucursal
+
+            # Formatear los datos de la sucursal con el mayor total de ventas
+            if mesero_mayor_ventas:
+                # Obtener todos los pedidos pagados de la sucursal con el mayor total de ventas
+                pedidos_mesero_mayor_ventas = pedidos.filter(id_Sucursal=mesero_mayor_ventas)
+
+                # Formatear los datos de los pedidos de la sucursal con el mayor total de ventas
+                pedidos_data = []
+                for pedido in pedidos_mesero_mayor_ventas:
+                    detalle_pedido_data = []
+                    for detalle_pedido in pedido.detallepedidos_set.all():
+                        producto_data = {
+                            'id_producto': detalle_pedido.id_producto.id_producto,
+                            'nombreproducto': detalle_pedido.id_producto.nombreproducto,
+                            'cantidad': detalle_pedido.cantidad,
+                            'precio_unitario': detalle_pedido.precio_unitario,
+                            'impuesto': detalle_pedido.impuesto,
+                            'descuento': detalle_pedido.descuento,
+                        }
+                        detalle_pedido_data.append(producto_data)
+
+                    pedido_data = {
+                        'id_pedido': pedido.id_pedido,
+                        'cliente': {
+                            'id_cliente': pedido.id_cliente.id_cliente,
+                            'crazon_social': pedido.id_cliente.crazon_social,
+                            'ctelefono': pedido.id_cliente.ctelefono,
+                            'snombre': pedido.id_cliente.snombre,
+                            'capellido': pedido.id_cliente.capellido,
+                            'ccorreo_electronico': pedido.id_cliente.ccorreo_electronico,
+                        },
+                        'precio': pedido.precio,
+                        'tipo_de_pedido': pedido.tipo_de_pedido,
+                        'metodo_de_pago': pedido.metodo_de_pago,
+                        'puntos': pedido.puntos,
+                        'fecha_pedido': pedido.fecha_pedido,
+                        'fecha_entrega': pedido.fecha_entrega,
+                        'estado_del_pedido': pedido.estado_del_pedido,
+                        'observacion_del_cliente': pedido.observacion_del_cliente,
+                        'detalle_pedido': detalle_pedido_data,
+                    }
+
+                    pedidos_data.append(pedido_data)
+
+                # Crear un diccionario con los datos de la sucursal con el mayor total de ventas
+                sucursal_data = {
+                    'id_sucursal': mesero_mayor_ventas.id_sucursal,
+                    'nombre_sucursal': mesero_mayor_ventas.snombre,
+                    'total_ventas': total_ventas_max,
+                    'pedidos': pedidos_data
+                }
+
+                return JsonResponse({'mesero_mayor_ventas': sucursal_data})
+            else:
+                return JsonResponse({'message': 'No hay sucursales con pedidos pagados'}, status=404)
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

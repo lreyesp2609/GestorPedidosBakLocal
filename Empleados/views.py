@@ -167,7 +167,8 @@ def listar_todos_los_empleados(request):
                 'nombre': mesero.nombre,
                 'apellido': mesero.apellido,
                 'telefono': mesero.telefono,
-                'fecha': mesero.fecha_registro
+                'fecha': mesero.fecha_registro,
+                'tipo_empleado': 'Mesero'
             })
 
         # Agregar los datos de los jefes de cocina
@@ -178,7 +179,8 @@ def listar_todos_los_empleados(request):
                 'nombre': jefe_cocina.nombre,
                 'apellido': jefe_cocina.apellido,
                 'telefono': jefe_cocina.telefono,
-                'fecha': jefe_cocina.fecha_registro
+                'fecha': jefe_cocina.fecha_registro,
+                'tipo_empleado': 'Jefes de cocina'
             })
 
         # Agregar los datos de los motorizados
@@ -189,7 +191,8 @@ def listar_todos_los_empleados(request):
                 'nombre': motorizado.nombre,
                 'apellido': motorizado.apellido,
                 'telefono': motorizado.telefono,
-                'fecha': motorizado.fecha_registro
+                'fecha': motorizado.fecha_registro,
+                'tipo_empleado': 'Motorizado'
             })
 
         return JsonResponse({'empleados': empleados_data})
@@ -212,6 +215,15 @@ def listar_empleados_todas_sucursales_tipo_empleado(request, tipo_empleado):
         # Crear una lista para almacenar los datos de todos los empleados
         empleados_data = []
 
+        for empleado in empleados:
+            tipo = ''
+            if tipo_empleado == 'motorizados':
+                tipo = 'Motorizado'
+            elif tipo_empleado == 'meseros':
+                tipo = 'Mesero'
+            elif tipo_empleado == 'jefe_cocina':
+                tipo = 'Jefe de cocina'
+
         # Agregar los datos de los empleados a la lista
         for empleado in empleados:
             empleados_data.append({
@@ -221,7 +233,8 @@ def listar_empleados_todas_sucursales_tipo_empleado(request, tipo_empleado):
                 'apellido': empleado.apellido,
                 'telefono': empleado.telefono,
                 'ciudad': empleado.id_sucursal.sdireccion,
-                'fecha': empleado.fecha_registro
+                'fecha': empleado.fecha_registro,
+                'tipo_empleado': tipo
             })
 
         return JsonResponse({'empleados': empleados_data})
