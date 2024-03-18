@@ -115,19 +115,36 @@ def listar_empleados_tipo(request, idsucursal=None, tipo_empleado=None):
         # Si no se proporciona un tipo de empleado ni una sucursal
         if not tipo_empleado and not idsucursal:
             return JsonResponse({'error': 'Debe especificar al menos una sucursal o un tipo de empleado'}, status=400)
+        
+        nombres_tipos_empleado = {
+                'motorizado': 'Motorizado',
+                'mesero': 'Mesero',
+                'jefecocina': 'Jefe de cocina'
+            }
 
         # Si se proporciona tanto una sucursal como un tipo de empleado
         if idsucursal and tipo_empleado:
             if tipo_empleado == 'jefe_cocina':
                 empleados = JefeCocina.objects.filter(id_sucursal=idsucursal)
+                tipo = 'Jefe de cocina'
             elif tipo_empleado == 'motorizado':
                 empleados = Motorizado.objects.filter(id_sucursal=idsucursal)
+                tipo = 'Motorizado'
             elif tipo_empleado == 'mesero':
                 empleados = Mesero.objects.filter(id_sucursal=idsucursal)
+                tipo = 'Mesero'
             else:
                 return JsonResponse({'error': 'Tipo de empleado no válido'}, status=400)
 
-            empleados_data = [{'nombre': empleado.nombre, 'apellido': empleado.apellido, 'telefono': empleado.telefono, 'ciudad': empleado.id_sucursal.sdireccion,  'fecha': empleado.fecha_registro} for empleado in empleados]
+            empleados_data = [{
+                'nombre': empleado.nombre, 
+                'apellido': empleado.apellido, 
+                'telefono': empleado.telefono, 
+                'ciudad': empleado.id_sucursal.sdireccion,  
+                'fecha': empleado.fecha_registro,
+                'sucursal': empleado.id_sucursal.snombre,
+                'tipo_empleado': tipo
+            } for empleado in empleados]
 
             if not empleados_data:
                 return JsonResponse({'mensaje': 'No hay empleados de tipo {} en la sucursal {}'.format(tipo_empleado, idsucursal)})
@@ -139,7 +156,15 @@ def listar_empleados_tipo(request, idsucursal=None, tipo_empleado=None):
             meseros = Mesero.objects.filter(id_sucursal=idsucursal)
             
             empleados = list(jefes_cocina) + list(motorizados) + list(meseros)        
-            empleados_data = [{'nombre': empleado.nombre, 'apellido': empleado.apellido, 'telefono': empleado.telefono, 'ciudad': empleado.id_sucursal.sdireccion, 'fecha': empleado.fecha_registro} for empleado in empleados]
+            empleados_data = [{
+                'nombre': empleado.nombre, 
+                'apellido': empleado.apellido, 
+                'telefono': empleado.telefono, 
+                'ciudad': empleado.id_sucursal.sdireccion, 
+                'fecha': empleado.fecha_registro,
+                'sucursal': empleado.id_sucursal.snombre,
+                'tipo_empleado': nombres_tipos_empleado[empleado.__class__.__name__.lower()]  
+            } for empleado in empleados]
 
             if not empleados_data:
                 return JsonResponse({'mensaje': 'No hay empleados en la sucursal {}'.format(idsucursal)})
@@ -203,26 +228,20 @@ def listar_todos_los_empleados(request):
 def listar_empleados_todas_sucursales_tipo_empleado(request, tipo_empleado):
     try:
         # Filtrar empleados por tipo de empleado en todas las sucursales
-        if tipo_empleado == 'motorizados':
+        if tipo_empleado == 'motorizado':
             empleados = Motorizado.objects.all()
-        elif tipo_empleado == 'meseros':
+            tipo = 'Motorizado'
+        elif tipo_empleado == 'mesero':
             empleados = Mesero.objects.all()
+            tipo = 'Mesero'
         elif tipo_empleado == 'jefe_cocina':
             empleados = JefeCocina.objects.all()
+            tipo = 'Jefe de cocina'
         else:
             return JsonResponse({'error': 'Tipo de empleado no válido'}, status=400)
 
         # Crear una lista para almacenar los datos de todos los empleados
         empleados_data = []
-
-        for empleado in empleados:
-            tipo = ''
-            if tipo_empleado == 'motorizados':
-                tipo = 'Motorizado'
-            elif tipo_empleado == 'meseros':
-                tipo = 'Mesero'
-            elif tipo_empleado == 'jefe_cocina':
-                tipo = 'Jefe de cocina'
 
         # Agregar los datos de los empleados a la lista
         for empleado in empleados:
@@ -271,61 +290,6 @@ class EditarEmpleadoView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
-def listar_empleados2(request, **kwargs):
-    try:
-        idsucursal = kwargs.get('idsucursal') 
-        if idsucursal:
-            jefes_cocina = JefeCocina.objects.filter(id_sucursal=idsucursal) if idsucursal else JefeCocina.objects.all()
-            motorizados = Motorizado.objects.filter(id_sucursal=idsucursal) if idsucursal else Motorizado.objects.all()
-            administradores = Administrador.objects.filter(id_sucursal=idsucursal) if idsucursal else Administrador.objects.all()
-            meseros = Mesero.objects.filter(id_sucursal=idsucursal) if idsucursal else Mesero.objects.all()
-        else:
-            jefes_cocina = JefeCocina.objects.all()
-            motorizados = Motorizado.objects.all()
-            administradores = Administrador.objects.all()
-            meseros = Mesero.objects.all()
-        empleados = [
-            {
-                'id': j.id_cuenta.id_cuenta,
-                'nombre': j.nombre,
-                'apellido': j.apellido,
-                'telefono': j.telefono,
-                'tipo': 'X',
-                'sucursal': j.id_sucursal.id_sucursal if j.id_sucursal else None
-            } for j in jefes_cocina
-        ] + [
-            {
-                'id': mo.id_cuenta.id_cuenta,
-                'nombre': mo.nombre,
-                'apellido': mo.apellido,
-                'telefono': mo.telefono,
-                'tipo': 'D',
-                'sucursal': mo.id_sucursal.id_sucursal if mo.id_sucursal else None
-            } for mo in motorizados
-        ] + [
-            {
-                'id': a.id_cuenta.id_cuenta,
-                'nombre': a.nombre,
-                'apellido': a.apellido,
-                'telefono': a.telefono,
-                'tipo': 'A',
-                'sucursal': a.id_sucursal.id_sucursal if a.id_sucursal else None
-            } for a in administradores
-        ] + [
-            {
-                'id': m.id_cuenta.id_cuenta,
-                'nombre': m.nombre,
-                'apellido': m.apellido,
-                'telefono': m.telefono,
-                'tipo': 'M',
-                'sucursal': m.id_sucursal.id_sucursal if m.id_sucursal else None
-            } for m in meseros
-        ]
-
-        return JsonResponse({'empleados': empleados})
-    except Exception as e:
-        return JsonResponse({'error': str(e)}, status=400)
-    
 @method_decorator(csrf_exempt, name='dispatch')
 class AgregarDatosBancarios(View):
     @transaction.atomic
