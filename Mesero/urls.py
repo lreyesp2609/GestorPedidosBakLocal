@@ -30,6 +30,9 @@ urlpatterns = [
     path('factura_v_report/', FacturasConCodigoReport.as_view(), name='facturavalida_V'),
     path('factura_n_report/', FacturasSinCodigoReport.as_view(), name='facturavalida_n'),
     path('listapedidosmes/', ListaPedidosMes.as_view(), name='pedidosmes'),
-    path('listaventasmeseros/', MayorVentas.as_view(), name='MayorVentas'),
-    path('listaventasmesero/', MayorVentasSucursal.as_view(), name='MayorVentasSucursal'),
+    path('listaventasmesero/', MayorVentas.as_view(), name='top ventas meseros'),
+    path('listaventassucursal/', MayorVentasSucursal.as_view(), name='top ventas sucursal'),
+    path('fechareverso/', FechaReverso.as_view(), name='fecha min max reverso'),
+    path('fechatop/', FechaTop.as_view(), name='fecha min max top ventas'),
+    path('fechasucursal/<int:id_sucursal>/', FechaSucursal.as_view(), name='fecha min max sucursal'),
 ]

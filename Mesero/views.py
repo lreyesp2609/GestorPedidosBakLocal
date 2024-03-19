@@ -13,7 +13,7 @@ from decimal import Decimal
 from Mesa.models import Mesas
 from Inventario.models import *
 from .models import Sucursales
-from django.db.models import Sum
+from django.db.models import Sum, Min, Max
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidos(View):
@@ -905,7 +905,8 @@ class FacturasValidadasReportes(View):
             facturas_validadas = Factura.objects.filter(
                 codigo_factura__isnull=False,
                 numero_factura_desde__isnull=False,
-                numero_factura_hasta__isnull=False
+                numero_factura_hasta__isnull=False,
+                estado='P'
             )
 
             # Formatea los datos
@@ -2094,5 +2095,70 @@ class MayorVentasSucursal(View):
                 return JsonResponse({'mesero_mayor_ventas': sucursal_data})
             else:
                 return JsonResponse({'message': 'No hay sucursales con pedidos pagados'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+        
+@method_decorator(csrf_exempt, name='dispatch')
+class FechaReverso(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén todas las facturas con estado "R"
+            reverso = Factura.objects.filter(estado='R')
+            # Inicializar variables para fechas mínima y máxima
+            fecha_minima = None
+            fecha_maxima = None
+
+            for factura in reverso:                
+                 # Obtén los detalles de la nota de crédito asociada (si existe)
+                nota_credito = NotaCredito.objects.filter(id_factura=factura.id_factura).first()
+                if nota_credito:
+                    fecha_nota_credito = nota_credito.fechaemision
+                    if fecha_nota_credito:
+                        # Actualizar fecha mínima y máxima
+                        if not fecha_minima or fecha_nota_credito < fecha_minima:
+                            fecha_minima = fecha_nota_credito
+                        if not fecha_maxima or fecha_nota_credito > fecha_maxima:
+                            fecha_maxima = fecha_nota_credito
+
+            # Convertir fechas mínima y máxima a cadenas
+            fecha_minima_str = fecha_minima.strftime('%Y-%m-%d %H:%M:%S') if fecha_minima else None
+            fecha_maxima_str = fecha_maxima.strftime('%Y-%m-%d %H:%M:%S') if fecha_maxima else None
+
+            return JsonResponse({'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class FechaTop(View):
+    def get(self, request, *args, **kwargs):
+        try:
+            # Obtén todos los pedidos pagados
+            pedidos = Pedidos.objects.filter(estado_pago='Pagado')
+
+            # Obtén la fecha mínima y máxima de los pedidos pagados
+            fecha_minima = pedidos.aggregate(fecha_minima=Min('fecha_pedido'))['fecha_minima']
+            fecha_maxima = pedidos.aggregate(fecha_maxima=Max('fecha_pedido'))['fecha_maxima']
+
+            # Convertir fechas mínima y máxima a cadenas
+            fecha_minima_str = fecha_minima.strftime('%Y-%m-%d %H:%M:%S') if fecha_minima else None
+            fecha_maxima_str = fecha_maxima.strftime('%Y-%m-%d %H:%M:%S') if fecha_maxima else None
+
+            return JsonResponse({'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class FechaSucursal(View):
+    def get(self, request, id_sucursal, *args, **kwargs):
+        try:
+
+            # Obtén la fecha más antigua y la más reciente de los pedidos para la sucursal específica
+            fecha_minima = Pedidos.objects.filter(id_Sucursal=id_sucursal, estado_pago='Pagado').aggregate(Min('fecha_pedido'))['fecha_pedido__min']
+            fecha_maxima = Pedidos.objects.filter(id_Sucursal=id_sucursal, estado_pago='Pagado').aggregate(Max('fecha_pedido'))['fecha_pedido__max']
+
+            fecha_minima_str = fecha_minima.strftime('%Y-%m-%d %H:%M:%S') if fecha_minima else None
+            fecha_maxima_str = fecha_maxima.strftime('%Y-%m-%d %H:%M:%S') if fecha_maxima else None
+
+            # Obtén el nombre de la sucursal
+            nombre_sucursal = Sucursales.objects.get(id_sucursal=id_sucursal).snombre
+
+            return JsonResponse({
+                                 'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str, 'nombre_sucursal': nombre_sucursal})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
