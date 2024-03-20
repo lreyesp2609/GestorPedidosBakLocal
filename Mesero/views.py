@@ -909,6 +909,10 @@ class FacturasValidadasReportes(View):
                 estado='P'
             )
 
+            # Obtén la fecha mínima y máxima de las facturas emitidas
+            fecha_minima = facturas_validadas.aggregate(Min('fecha_emision'))['fecha_emision__min']
+            fecha_maxima = facturas_validadas.aggregate(Max('fecha_emision'))['fecha_emision__max']
+
             # Formatea los datos
             data = []
             for factura in facturas_validadas:
@@ -924,7 +928,7 @@ class FacturasValidadasReportes(View):
                     'a_pagar': str(factura.a_pagar) if factura.a_pagar else None,
                 }
                 data.append(factura_data)
-            return JsonResponse({'facturas_validadas': data})
+            return JsonResponse({'facturas_validadas': data, 'fecha_minima': fecha_minima, 'fecha_maxima': fecha_maxima})
         except Exception as e:return JsonResponse({'error': str(e)}, status=500)
 @method_decorator(csrf_exempt, name='dispatch')
 class ListaPedidosReportes(View):
@@ -2127,7 +2131,7 @@ class FechaReverso(View):
             return JsonResponse({'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-class FechaTop(View):
+class FechaVentas(View):
     def get(self, request, *args, **kwargs):
         try:
             # Obtén todos los pedidos pagados
@@ -2160,5 +2164,137 @@ class FechaSucursal(View):
 
             return JsonResponse({
                                  'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str, 'nombre_sucursal': nombre_sucursal})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class FechaMesero(View):
+    def get(self, request, id_mesero, *args, **kwargs):
+        try:
+            # Obtén la fecha más antigua y la más reciente de los pedidos para el mesero específico
+            fecha_minima = Pedidos.objects.filter(factura__id_mesero=id_mesero, estado_pago='Pagado').aggregate(Min('fecha_pedido'))['fecha_pedido__min']
+            fecha_maxima = Pedidos.objects.filter(factura__id_mesero=id_mesero, estado_pago='Pagado').aggregate(Max('fecha_pedido'))['fecha_pedido__max']
+
+            # Formatea las fechas como cadenas si existen
+            fecha_minima_str = fecha_minima.strftime('%Y-%m-%d %H:%M:%S') if fecha_minima else None
+            fecha_maxima_str = fecha_maxima.strftime('%Y-%m-%d %H:%M:%S') if fecha_maxima else None
+
+            nombre_mesero = Meseros.objects.get(id_mesero=id_mesero).nombre
+
+            return JsonResponse({'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str, 'nombre': nombre_mesero})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class FechaProducto(View):
+    def get(self, request, id_producto, *args, **kwargs):
+        try:
+            # Obtén la fecha más antigua y la más reciente de los pedidos para el mesero específico
+            fecha_minima = Pedidos.objects.filter(detallepedidos__id_producto=id_producto, estado_pago='Pagado').aggregate(Min('fecha_pedido'))['fecha_pedido__min']
+            fecha_maxima = Pedidos.objects.filter(detallepedidos__id_producto=id_producto, estado_pago='Pagado').aggregate(Max('fecha_pedido'))['fecha_pedido__max']
+
+            # Formatea las fechas como cadenas si existen
+            fecha_minima_str = fecha_minima.strftime('%Y-%m-%d %H:%M:%S') if fecha_minima else None
+            fecha_maxima_str = fecha_maxima.strftime('%Y-%m-%d %H:%M:%S') if fecha_maxima else None
+
+            return JsonResponse({'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class FechaTipoProducto(View):
+    def get(self, request, id_tipoproducto, *args, **kwargs):
+        try:
+            # Obtén la lista de productos que pertenecen al tipo de producto dado
+            productos = Producto.objects.filter(
+                id_categoria__id_tipoproducto=id_tipoproducto
+            )
+
+            # Lista de IDs de productos que pertenecen al tipo de producto dado
+            ids_productos = productos.values_list('id_producto', flat=True)
+
+            # Obtén la lista de pedidos asociados a los productos del tipo de producto dado
+            pedidos = Pedidos.objects.filter(
+                estado_pago='Pagado',
+                detallepedidos__id_producto__in=ids_productos
+            ).distinct()
+
+            # Obtén la fecha mínima y máxima de los pedidos
+            fecha_minima = pedidos.aggregate(Min('fecha_pedido'))['fecha_pedido__min']
+            fecha_maxima = pedidos.aggregate(Max('fecha_pedido'))['fecha_pedido__max']
+
+            # Formatea las fechas como cadenas si existen
+            fecha_minima_str = fecha_minima.strftime('%Y-%m-%d %H:%M:%S') if fecha_minima else None
+            fecha_maxima_str = fecha_maxima.strftime('%Y-%m-%d %H:%M:%S') if fecha_maxima else None
+
+            return JsonResponse({'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class FacturasPorSucursal(View):
+    def get(self, request, id_sucursal, *args, **kwargs):
+        try:
+            # Obtén la lista de meseros asociados a la sucursal
+            meseros_en_sucursal = Meseros.objects.filter(id_sucursal=id_sucursal)
+
+            # Obtenemos los IDs de los meseros en la sucursal
+            ids_meseros = meseros_en_sucursal.values_list('id_mesero', flat=True)
+
+            # Obtén la lista de facturas validadas para los meseros en la sucursal
+            facturas_validadas = Factura.objects.filter(
+                id_mesero__in=ids_meseros,
+                codigo_factura__isnull=False,
+                numero_factura_desde__isnull=False,
+                numero_factura_hasta__isnull=False,
+                estado='P'
+            )
+
+            # Obtén la fecha mínima y máxima de las facturas emitidas
+            fecha_minima = facturas_validadas.aggregate(Min('fecha_emision'))['fecha_emision__min']
+            fecha_maxima = facturas_validadas.aggregate(Max('fecha_emision'))['fecha_emision__max']
+
+            # Formatea los datos
+            data = []
+            for factura in facturas_validadas:
+                factura_data = {
+                    'codigo_factura': str(factura.codigo_factura) if factura.codigo_factura else None,
+                    'cliente_completo': f"{factura.id_cliente.snombre} {factura.id_cliente.capellido}" if factura.id_cliente else None,
+                    'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S') if factura.fecha_emision else None,
+                    'mesero_completo': f"{factura.id_mesero.nombre} {factura.id_mesero.apellido}" if factura.id_cliente else None,
+                    'total': str(factura.total),
+                    'iva': str(factura.iva) if factura.iva else None,
+                    'descuento': str(factura.descuento) if factura.descuento else None,
+                    'subtotal': str(factura.subtotal) if factura.subtotal else None,
+                    'a_pagar': str(factura.a_pagar) if factura.a_pagar else None,
+                }
+                data.append(factura_data)
+            return JsonResponse({'facturas_validadas': data, 'fecha_minima': fecha_minima, 'fecha_maxima': fecha_maxima})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)
+class FacturasPorMesero(View):
+    def get(self, request, id_mesero, *args, **kwargs):
+        try:
+            # Obtén la lista de facturas validadas para el mesero específico
+            facturas_validadas = Factura.objects.filter(
+                id_mesero=id_mesero,
+                codigo_factura__isnull=False,
+                numero_factura_desde__isnull=False,
+                numero_factura_hasta__isnull=False,
+                estado='P'
+            )
+
+            # Obtén la fecha mínima y máxima de las facturas emitidas
+            fecha_minima = facturas_validadas.aggregate(Min('fecha_emision'))['fecha_emision__min']
+            fecha_maxima = facturas_validadas.aggregate(Max('fecha_emision'))['fecha_emision__max']
+
+            # Formatea los datos
+            data = []
+            for factura in facturas_validadas:
+                factura_data = {
+                    'codigo_factura': str(factura.codigo_factura) if factura.codigo_factura else None,
+                    'cliente_completo': f"{factura.id_cliente.snombre} {factura.id_cliente.capellido}" if factura.id_cliente else None,
+                    'fecha_emision': factura.fecha_emision.strftime('%Y-%m-%d %H:%M:%S') if factura.fecha_emision else None,
+                    'mesero_completo': f"{factura.id_mesero.nombre} {factura.id_mesero.apellido}" if factura.id_cliente else None,
+                    'total': str(factura.total),
+                    'iva': str(factura.iva) if factura.iva else None,
+                    'descuento': str(factura.descuento) if factura.descuento else None,
+                    'subtotal': str(factura.subtotal) if factura.subtotal else None,
+                    'a_pagar': str(factura.a_pagar) if factura.a_pagar else None,
+                }
+                data.append(factura_data)
+            return JsonResponse({'facturas_validadas': data, 'fecha_minima': fecha_minima, 'fecha_maxima': fecha_maxima})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)

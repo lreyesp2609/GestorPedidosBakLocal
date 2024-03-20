@@ -33,6 +33,11 @@ urlpatterns = [
     path('listaventasmesero/', MayorVentas.as_view(), name='top ventas meseros'),
     path('listaventassucursal/', MayorVentasSucursal.as_view(), name='top ventas sucursal'),
     path('fechareverso/', FechaReverso.as_view(), name='fecha min max reverso'),
-    path('fechatop/', FechaTop.as_view(), name='fecha min max top ventas'),
+    path('fechatop/', FechaVentas.as_view(), name='fecha min max top ventas'),
     path('fechasucursal/<int:id_sucursal>/', FechaSucursal.as_view(), name='fecha min max sucursal'),
+    path('fechamesero/<int:id_mesero>/', FechaMesero.as_view(), name='fecha min max mesero'),
+    path('fechaproducto/<int:id_producto>/', FechaProducto.as_view(), name='fecha min max producto'),
+    path('fechatipoproducto/<int:id_tipoproducto>/', FechaTipoProducto.as_view(), name='fecha min max tipo producto'),
+    path('lista_facturas_m/<int:id_mesero>/', FacturasPorMesero.as_view(), name='lista_facturas_mesero'),
+    path('lista_facturas_s/<int:id_sucursal>/', FacturasPorSucursal.as_view(), name='lista_facturas_sucursal'),
 ]
