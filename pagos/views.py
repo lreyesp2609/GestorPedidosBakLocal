@@ -10,6 +10,7 @@ import json
 from datetime import datetime
 import traceback
 from django.utils import timezone
+from django.db.models import Min, Max
 
 @method_decorator(csrf_exempt, name='dispatch')
 class CrearEditarTipopago(View):
@@ -51,7 +52,7 @@ class ConsultarTipopago(View):
             # Consultar todos los Tipopago
             tipopagos = Tipopago.objects.all()
 
-            # Crear una lista con lojjjjjjjjjjjjjms datos de cada Tipopago
+            # Crear una lista con  datos de cada Tipopago
             tipopagos_data = [
                 {
                     'id_tipopago': tipopago.id_tipopago,
@@ -118,6 +119,10 @@ class ConsultarPagos(View):
             # Consultar todos los Pagos
             pagos = Pagos.objects.all()
             
+             # Obtener la fecha mínima y máxima de registro
+            fecha_minima = pagos.aggregate(min_fecha=Min('horadepago'))['min_fecha']
+            fecha_maxima = pagos.aggregate(max_fecha=Max('horadepago'))['max_fecha']
+
             # Crear una lista con los datos de cada Pago
             pagos_data = [
                 {
@@ -127,13 +132,12 @@ class ConsultarPagos(View):
                     'cantidad': str(pago.cantidad),  # Convertir el Decimal a cadena para evitar errores de serialización JSON
                     'tipopago': pago.tipopago,
                     'idperiodo': pago.idperiodo.id_periodo,
-                    'horadepago': pago.horadepago.strftime('%Y-%m-%d %H:%M:%S'),  # Formato ISO 8601 para la fecha
+                    'horadepago': pago.horadepago.strftime('%Y-%m-%d %H:%M:%S'), 
                 }
                 for pago in pagos
             ]
 
-            return JsonResponse({'pagos': pagos_data})
-
+            return JsonResponse({'pagos': pagos_data, 'fecha_minima': fecha_minima, 'fecha_maxima': fecha_maxima})
         except Exception as e:
             traceback.print_exc()
             return JsonResponse({'error': str(e)}, status=500)

@@ -18,6 +18,15 @@ from decimal import Decimal, InvalidOperation
 from pagos.models import PagosTransferencia, PagosEfectivo,PagosPasarela
 from Login.models import Cuenta
 import traceback
+from django.db.models import Min, Max
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404
+from django.views.decorators.csrf import csrf_exempt
+from django.utils.decorators import method_decorator
+from django.views import View
+import json
+from Cliente.models import Clientes
 
 @method_decorator(csrf_exempt, name='dispatch')
 class ActualizarClienteView(View):
@@ -70,20 +79,15 @@ class EditarCliente(View):
             return JsonResponse({'mensaje': 'Datos del cliente actualizados correctamente'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
-from django.contrib.auth.decorators import login_required
-from django.http import JsonResponse
-from django.shortcuts import get_object_or_404
-from django.views.decorators.csrf import csrf_exempt
-from django.utils.decorators import method_decorator
-from django.views import View
-import json
-from Cliente.models import Clientes
-
 @method_decorator(csrf_exempt, name='dispatch')
 class VerClientesView(View):
     def get(self, request, *args, **kwargs):
         try:
             clientes = Clientes.objects.all()
+
+            # Obtener la fecha mínima y máxima de registro
+            fecha_minima = clientes.aggregate(min_fecha=Min('cregistro'))['min_fecha']
+            fecha_maxima = clientes.aggregate(max_fecha=Max('cregistro'))['max_fecha']
 
             clientes_data = []
             for cliente in clientes:
@@ -92,6 +96,7 @@ class VerClientesView(View):
                     'crazon_social': cliente.crazon_social,
                     'snombre': cliente.snombre,
                     'capellido': cliente.capellido,
+                    'nombre': cliente.snombre + ' ' + cliente.capellido,
                     'ruc_cedula': cliente.ruc_cedula,
                     'ccorreo_electronico': cliente.ccorreo_electronico,
                     'ubicacion': cliente.ubicacion,
@@ -102,7 +107,7 @@ class VerClientesView(View):
                 }
                 clientes_data.append(cliente_data)
 
-            return JsonResponse({'clientes': clientes_data})
+            return JsonResponse({'clientes': clientes_data, 'fecha_minima': fecha_minima, 'fecha_maxima': fecha_maxima})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
 @method_decorator(csrf_exempt, name='dispatch')
