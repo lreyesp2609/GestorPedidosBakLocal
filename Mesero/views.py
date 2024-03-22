@@ -1636,6 +1636,10 @@ class ReversoFacturaReporte(View):
             reverso = Factura.objects.filter(estado='R')
             response_data = []
 
+           # Inicializar variables para fechas mínima y máxima
+            fecha_minima = None
+            fecha_maxima = None
+
             for factura in reverso:
                 pedido = factura.id_pedido
                 estado_pago = pedido.estado_pago if pedido else None
@@ -1696,9 +1700,21 @@ class ReversoFacturaReporte(View):
                         'estado_nota_credito': nota_credito.estado
                     })
 
+                 # Actualizar la fecha mínima y máxima de la nota de crédito
+                    if nota_credito.fechaemision:
+                        fecha_emision = nota_credito.fechaemision
+                        if fecha_minima is None or fecha_emision < fecha_minima:
+                            fecha_minima = fecha_emision
+                        if fecha_maxima is None or fecha_emision > fecha_maxima:
+                            fecha_maxima= fecha_emision
+
                 response_data.append(factura_data)
 
-            return JsonResponse({'reverso': response_data})
+            # Convertir fechas mínima y máxima a cadenas
+            fecha_minima_str = fecha_minima.strftime('%Y-%m-%d %H:%M:%S') if fecha_minima else None
+            fecha_maxima_str = fecha_maxima.strftime('%Y-%m-%d %H:%M:%S') if fecha_maxima else None
+
+            return JsonResponse({'reverso': response_data, 'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 @method_decorator(csrf_exempt, name='dispatch')
@@ -1708,6 +1724,10 @@ class FacturasConCodigoReport(View):
             # Obtén todas las facturas con estado "R" y un valor en codigo_factura
             reverso = Factura.objects.filter(estado='R', codigo_factura__isnull=False)
             response_data = []
+
+            # Inicializar variables para fechas mínima y máxima
+            fecha_minima = None
+            fecha_maxima = None
 
             for factura in reverso:
                 pedido = factura.id_pedido
@@ -1769,9 +1789,21 @@ class FacturasConCodigoReport(View):
                         'estado_nota_credito': nota_credito.estado
                     })
 
+                # Actualizar la fecha mínima y máxima de la nota de crédito
+                    if nota_credito.fechaemision:
+                        fecha_emision = nota_credito.fechaemision
+                        if fecha_minima is None or fecha_emision < fecha_minima:
+                            fecha_minima = fecha_emision
+                        if fecha_maxima is None or fecha_emision > fecha_maxima:
+                            fecha_maxima= fecha_emision
+
                 response_data.append(factura_data)
 
-            return JsonResponse({'reverso': response_data})
+            # Convertir fechas mínima y máxima a cadenas
+            fecha_minima_str = fecha_minima.strftime('%Y-%m-%d %H:%M:%S') if fecha_minima else None
+            fecha_maxima_str = fecha_maxima.strftime('%Y-%m-%d %H:%M:%S') if fecha_maxima else None
+
+            return JsonResponse({'reverso': response_data, 'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 @method_decorator(csrf_exempt, name='dispatch')
@@ -1781,6 +1813,10 @@ class FacturasSinCodigoReport(View):
             # Obtén todas las facturas con estado "R" y sin valor en codigo_factura
             reverso = Factura.objects.filter(estado='R', codigo_factura__isnull=True)
             response_data = []
+
+            # Inicializar variables para fechas mínima y máxima
+            fecha_minima = None
+            fecha_maxima = None
 
             for factura in reverso:
                 pedido = factura.id_pedido
@@ -1842,9 +1878,21 @@ class FacturasSinCodigoReport(View):
                         'estado_nota_credito': nota_credito.estado
                     })
 
+                # Actualizar la fecha mínima y máxima de la nota de crédito
+                    if nota_credito.fechaemision:
+                        fecha_emision = nota_credito.fechaemision
+                        if fecha_minima is None or fecha_emision < fecha_minima:
+                            fecha_minima = fecha_emision
+                        if fecha_maxima is None or fecha_emision > fecha_maxima:
+                            fecha_maxima= fecha_emision
+
                 response_data.append(factura_data)
 
-            return JsonResponse({'reverso': response_data})
+            # Convertir fechas mínima y máxima a cadenas
+            fecha_minima_str = fecha_minima.strftime('%Y-%m-%d %H:%M:%S') if fecha_minima else None
+            fecha_maxima_str = fecha_maxima.strftime('%Y-%m-%d %H:%M:%S') if fecha_maxima else None
+
+            return JsonResponse({'reverso': response_data, 'fecha_minima': fecha_minima_str, 'fecha_maxima': fecha_maxima_str})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
 @method_decorator(csrf_exempt, name='dispatch')
