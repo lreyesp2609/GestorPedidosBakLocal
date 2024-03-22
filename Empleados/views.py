@@ -228,6 +228,8 @@ def listar_empleados_todas_sucursales_tipo_empleado(request, tipo_empleado):
 
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+    
+
 
 @method_decorator(csrf_exempt, name='dispatch')
 class EditarEmpleadoView(View):
@@ -312,6 +314,9 @@ def listar_empleados2(request, **kwargs):
         return JsonResponse({'empleados': empleados})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=400)
+    
+
+    
     
 @method_decorator(csrf_exempt, name='dispatch')
 class AgregarDatosBancarios(View):
