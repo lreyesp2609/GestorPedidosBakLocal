@@ -110,3 +110,39 @@ class EditarAviso(View):
             return JsonResponse({'mensaje': 'Aviso editado con éxito'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=400)
+@method_decorator(csrf_exempt, name='dispatch')
+class EditarAvisoDos(View):
+    #@method_decorator(login_required)
+    @transaction.atomic
+    def post(self, request, *args, **kwargs):
+        try:
+            aviso_id = kwargs.get('id_aviso')
+            aviso = AvisosPrincipales.objects.get(id_aviso=aviso_id)
+            
+            # Si se proporciona un título en la solicitud, actualizarlo
+            titulo = request.POST.get('titulo')
+            if titulo:
+                aviso.titulo = titulo
+            
+            # Actualizar la descripción si se proporciona
+            descripcion = request.POST.get('descripcion')
+            if descripcion:
+                aviso.descripcion = descripcion
+                
+            # Actualizar la imagen si se proporciona
+            nueva_imagen = request.FILES.get('nueva_imagen')
+            if nueva_imagen:
+                try:
+                    image_read = nueva_imagen.read()
+                    image_64_encode = base64.b64encode(image_read)
+                    # No decodificar a utf-8
+                    aviso.imagen = image_64_encode
+                except UnidentifiedImageError as img_error:
+                    return JsonResponse({'error': f"Error al procesar imagen: {str(img_error)}"}, status=400)
+            
+            aviso.save()
+            return JsonResponse({'mensaje': 'Aviso editado con éxito'})
+        except AvisosPrincipales.DoesNotExist:
+            return JsonResponse({'error': 'El aviso especificado no existe'}, status=404)
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=400)
