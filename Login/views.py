@@ -7,6 +7,8 @@ from django.utils.decorators import method_decorator
 from django.views import View
 from django.db import transaction
 import json
+
+from Motorizado.models import Motorizados
 from .models import Cuenta, Clientes
 from Ubicaciones.models import Ubicaciones
 from Mesero.models import Meseros
@@ -90,9 +92,9 @@ class IniciarSesionView(View):
 
     def generate_token(self, cuenta):
         payload = {
-        'id_cuenta': cuenta.id_cuenta,
-        'nombreusuario': cuenta.nombreusuario,
-        'rol': cuenta.rol,
+            'id_cuenta': cuenta.id_cuenta,
+            'nombreusuario': cuenta.nombreusuario,
+            'rol': cuenta.rol,
         }
         token = jwt.encode(payload, settings.SECRET_KEY, algorithm='HS256')
         return token
@@ -114,7 +116,23 @@ class IniciarSesionView(View):
                     if cuenta:
                         token = self.generate_token(cuenta)
 
-                        return JsonResponse({'token': token, 'nombreusuario': nombre_usuario, 'id_cuenta': cuenta.id_cuenta})
+                        # Verificar si el usuario es un motorizado
+                        if cuenta.rol == 'D':  # 'D' es el rol de motorizado
+                            motorizado = Motorizados.objects.filter(id_cuenta=cuenta.id_cuenta).first()
+                            if motorizado:
+                                id_motorizado = motorizado.id_motorizado
+                            else:
+                                id_motorizado = None
+                        else:
+                            id_motorizado = None
+
+                        # Devolver el token, nombre de usuario, id_cuenta e id_motorizado (si aplica)
+                        return JsonResponse({
+                            'token': token,
+                            'nombreusuario': nombre_usuario,
+                            'id_cuenta': cuenta.id_cuenta,
+                            'id_motorizado': id_motorizado  # Incluir el id_motorizado en la respuesta
+                        })
                     else:
                         return JsonResponse({'mensaje': 'La cuenta asociada al usuario no tiene información'}, status=404)
                 else:
@@ -124,6 +142,7 @@ class IniciarSesionView(View):
 
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
+        
 @method_decorator(csrf_exempt, name='dispatch')
 class VerificarRolView(View):
     def post(self, request, *args, **kwargs):
